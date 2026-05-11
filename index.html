@@ -510,27 +510,26 @@ function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()
 // TTS
 function handleSpeak(id){
   var text=msgStore[id]||""; if(!text)return;
-  if(playId===id){stopSpeak();return;}
-  try{clearInterval(kaTimer); if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();}catch(e){}
+  if(playId===id){
+    try{speechSynthesis.cancel();}catch(e){}
+    setPlayId(null); return;
+  }
+  try{clearInterval(kaTimer); speechSynthesis.cancel();}catch(e){}
   setPlayId(null);
   if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
   try{
-    // Refresh cache if still empty
-    if(!cachedVoices.length){var vs=speechSynthesis.getVoices();if(vs.length)cachedVoices=vs;}
+    if(!cachedVoices.length){var cv=speechSynthesis.getVoices();if(cv.length)cachedVoices=cv;}
     var u=new SpeechSynthesisUtterance(text);
     u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
     if(cachedVoices.length){
       var base=selLang.tts.split("-")[0];
-      var v=cachedVoices.find(function(v){return v.lang===selLang.tts;})||cachedVoices.find(function(v){return v.lang.startsWith(base);});
+      var v=cachedVoices.find(function(x){return x.lang===selLang.tts;})||cachedVoices.find(function(x){return x.lang.startsWith(base);});
       if(v)u.voice=v;
     }
-    var done=false;
-    var fin=function(){if(done)return;done=true;clearInterval(kaTimer);setPlayId(null);};
-    var fb=setTimeout(fin,Math.max(text.split(/\s+/).length*420,2500));
-    u.onend=function(){clearTimeout(fb);fin();};
-    u.onerror=function(e){clearTimeout(fb);fin();};
+    u.onstart=function(){setPlayId(id);};
+    u.onend=function(){clearInterval(kaTimer);setPlayId(null);};
+    u.onerror=function(e){clearInterval(kaTimer);setPlayId(null);addErrMsg("TTS erreur: "+(e.error||"inconnu"));};
     kaTimer=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}speechSynthesis.pause();speechSynthesis.resume();},10000);
-    setPlayId(id);
     speechSynthesis.speak(u);
   }catch(e){addErrMsg("TTS: "+e.message);}
 }
