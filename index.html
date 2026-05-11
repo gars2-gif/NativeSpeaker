@@ -510,28 +510,62 @@ function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()
 // TTS
 function handleSpeak(id){
   var text=msgStore[id]||""; if(!text)return;
+  if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
+
+  // Click on the currently playing button -> stop
   if(playId===id){
-    try{speechSynthesis.cancel();}catch(e){}
+    try{clearInterval(kaTimer); speechSynthesis.cancel();}catch(e){}
     setPlayId(null); return;
   }
-  try{clearInterval(kaTimer); speechSynthesis.cancel();}catch(e){}
+
+  // Stop any other utterance, but ONLY if something is actually speaking.
+  // Calling cancel() on an idle synth and then speak() immediately is a known
+  // Chrome bug: the new utterance fires onstart+onend instantly (= the button
+  // "blinks") without any audio.
+  var wasSpeaking=false;
+  try{wasSpeaking=speechSynthesis.speaking||speechSynthesis.pending;}catch(e){}
+  try{clearInterval(kaTimer);}catch(e){}
+  if(wasSpeaking){
+    try{speechSynthesis.cancel();}catch(e){}
+  }
   setPlayId(null);
-  if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
-  try{
-    if(!cachedVoices.length){var cv=speechSynthesis.getVoices();if(cv.length)cachedVoices=cv;}
-    var u=new SpeechSynthesisUtterance(text);
-    u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
-    if(cachedVoices.length){
-      var base=selLang.tts.split("-")[0];
-      var v=cachedVoices.find(function(x){return x.lang===selLang.tts;})||cachedVoices.find(function(x){return x.lang.startsWith(base);});
-      if(v)u.voice=v;
-    }
-    u.onstart=function(){setPlayId(id);};
-    u.onend=function(){clearInterval(kaTimer);setPlayId(null);};
-    u.onerror=function(e){clearInterval(kaTimer);setPlayId(null);addErrMsg("TTS erreur: "+(e.error||"inconnu"));};
-    kaTimer=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}speechSynthesis.pause();speechSynthesis.resume();},10000);
-    speechSynthesis.speak(u);
-  }catch(e){addErrMsg("TTS: "+e.message);}
+
+  var doSpeak=function(){
+    try{
+      if(!cachedVoices.length){var cv=speechSynthesis.getVoices();if(cv.length)cachedVoices=cv;}
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
+      if(cachedVoices.length){
+        var base=selLang.tts.split("-")[0].toLowerCase();
+        var want=selLang.tts.toLowerCase();
+        var v=cachedVoices.find(function(x){return (x.lang||"").toLowerCase()===want;})
+            ||cachedVoices.find(function(x){return (x.lang||"").toLowerCase().replace("_","-").startsWith(base);});
+        if(v)u.voice=v;
+      }
+      u.onstart=function(){setPlayId(id);};
+      u.onend=function(){clearInterval(kaTimer);setPlayId(null);};
+      u.onerror=function(e){
+        clearInterval(kaTimer);setPlayId(null);
+        var er=e&&e.error;
+        if(er&&er!=="canceled"&&er!=="interrupted") addErrMsg("TTS erreur: "+er);
+      };
+      // Immediate visual feedback so the user knows the click registered
+      // even if onstart is delayed a few hundred ms on some platforms.
+      setPlayId(id);
+      speechSynthesis.speak(u);
+      // Chrome bug workaround: long utterances stop after ~15s. Start the
+      // keep-alive AFTER speak() and only while something is actually playing.
+      kaTimer=setInterval(function(){
+        if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}
+        try{speechSynthesis.pause();speechSynthesis.resume();}catch(e){}
+      },10000);
+    }catch(e){addErrMsg("TTS: "+e.message); setPlayId(null);}
+  };
+
+  // If we just cancelled, give the engine a tick before re-speaking,
+  // otherwise the new utterance also gets cancelled.
+  if(wasSpeaking) setTimeout(doSpeak,120);
+  else doSpeak();
 }
 function stopSpeak(){try{clearInterval(kaTimer);window.speechSynthesis&&speechSynthesis.cancel();}catch(e){}setPlayId(null);}
 function setPlayId(id){
