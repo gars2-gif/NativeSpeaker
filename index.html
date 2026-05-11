@@ -192,12 +192,19 @@ var apiKey="", selLang=LANGS[0], selLevel="intermediate", scenario="";
 var convo=[], busy=false;
 var recState="idle", rec=null, finalT="";
 var playId=null, kaTimer=null, msgStore={};
+var cachedVoices=[];
 
 window.addEventListener("DOMContentLoaded",function(){
   apiKey=localStorage.getItem("nk")||"";
   buildUI();
   if(apiKey) go("p-setup");
-  try{window.speechSynthesis&&speechSynthesis.getVoices();}catch(e){}
+  try{
+    if(window.speechSynthesis){
+      var load=function(){var vs=speechSynthesis.getVoices();if(vs.length)cachedVoices=vs;};
+      speechSynthesis.onvoiceschanged=load;
+      load();
+    }
+  }catch(e){}
 });
 
 function buildUI(){
@@ -504,28 +511,27 @@ function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()
 function handleSpeak(id){
   var text=msgStore[id]||""; if(!text)return;
   if(playId===id){stopSpeak();return;}
-  // Only cancel if something is already playing — avoids consuming the user gesture in Chrome
   try{clearInterval(kaTimer); if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();}catch(e){}
   setPlayId(null);
+  if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
   try{
-    if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
-    var go=function(voices){
-      var u=new SpeechSynthesisUtterance(text);
-      u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
+    // Refresh cache if still empty
+    if(!cachedVoices.length){var vs=speechSynthesis.getVoices();if(vs.length)cachedVoices=vs;}
+    var u=new SpeechSynthesisUtterance(text);
+    u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
+    if(cachedVoices.length){
       var base=selLang.tts.split("-")[0];
-      var v=voices.find(function(v){return v.lang===selLang.tts;})||voices.find(function(v){return v.lang.startsWith(base);});
+      var v=cachedVoices.find(function(v){return v.lang===selLang.tts;})||cachedVoices.find(function(v){return v.lang.startsWith(base);});
       if(v)u.voice=v;
-      var done=false;
-      var fin=function(){if(done)return;done=true;clearInterval(kaTimer);setPlayId(null);};
-      var fb=setTimeout(fin,Math.max(text.split(/\s+/).length*420,2500));
-      u.onend=function(){clearTimeout(fb);fin();};
-      u.onerror=function(){clearTimeout(fb);fin();};
-      kaTimer=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}speechSynthesis.pause();speechSynthesis.resume();},10000);
-      setPlayId(id);
-      speechSynthesis.speak(u);
-    };
-    var vs=speechSynthesis.getVoices();
-    if(vs.length)go(vs); else{speechSynthesis.onvoiceschanged=function(){go(speechSynthesis.getVoices());};}
+    }
+    var done=false;
+    var fin=function(){if(done)return;done=true;clearInterval(kaTimer);setPlayId(null);};
+    var fb=setTimeout(fin,Math.max(text.split(/\s+/).length*420,2500));
+    u.onend=function(){clearTimeout(fb);fin();};
+    u.onerror=function(e){clearTimeout(fb);fin();};
+    kaTimer=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}speechSynthesis.pause();speechSynthesis.resume();},10000);
+    setPlayId(id);
+    speechSynthesis.speak(u);
   }catch(e){addErrMsg("TTS: "+e.message);}
 }
 function stopSpeak(){try{clearInterval(kaTimer);window.speechSynthesis&&speechSynthesis.cancel();}catch(e){}setPlayId(null);}
