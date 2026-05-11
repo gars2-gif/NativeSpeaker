@@ -189,7 +189,7 @@ var SCENS  = [
 ];
 
 var apiKey="", selLang=LANGS[0], selLevel="intermediate", scenario="";
-var history=[], busy=false;
+var convo=[], busy=false;
 var recState="idle", rec=null, finalT="";
 var playId=null, kaTimer=null, msgStore={};
 
@@ -263,7 +263,7 @@ function setStatus(msg,type){
 function startChat(){
   var scText=(document.getElementById("sctx").value||"").trim();
   if(scText) scenario=scText;
-  history=[]; Object.keys(msgStore).forEach(function(k){delete msgStore[k];});
+  convo=[]; Object.keys(msgStore).forEach(function(k){delete msgStore[k];});
   document.getElementById("msgs").innerHTML="";
   document.getElementById("tf").textContent=selLang.flag;
   document.getElementById("tn").textContent=selLang.native+" - "+selLang.city;
@@ -276,7 +276,7 @@ function startChat(){
 
 function goSetup(){
   stopSpeak(); try{if(rec)rec.stop();}catch(e){}
-  history=[]; go("p-setup");
+  convo=[]; go("p-setup");
 }
 
 // SYSTEM PROMPT
@@ -312,7 +312,7 @@ async function callAPI(userText){
     ?"You are starting. Greet the user and ask a simple opening question. Set corrections:[] and pronunciation_tips:[] and encouragement:\"\"."
     :userText;
 
-  history.push({role:"user",content:content});
+  convo.push({role:"user",content:content});
   setStep("Envoi...");
   showThinking(true);
 
@@ -330,7 +330,7 @@ async function callAPI(userText){
         model:"claude-sonnet-4-20250514",
         max_tokens:800,
         system:makeSystem(),
-        messages:history
+        messages:convo
       })
     });
 
@@ -365,7 +365,7 @@ async function callAPI(userText){
       busy=false; return;
     }
 
-    history.push({role:"assistant",content:rawText});
+    convo.push({role:"assistant",content:rawText});
     var id="m"+Date.now();
     msgStore[id]=parsed.reply;
     showThinking(false);
