@@ -530,37 +530,81 @@ function handleSpeak(id){
   }
   setPlayId(null);
 
-  var doSpeak=function(){
+  // Build the list of fallback attempts.
+  // KEY INSIGHT: on Chrome/Edge desktop, getVoices() returns BOTH local
+  // voices (Microsoft SAPI / macOS) and Google's "Network" voices. If
+  // the engine picks a Network voice but the request to Google fails
+  // (offline, blocked, throttled), we get "synthesis-failed" every time
+  // while the local voice would have worked perfectly.
+  // -> Always try local voices FIRST, network voices LAST.
+  var buildAttempts=function(){
+    // Always re-pull voices: the list can change after page load.
+    var fresh=[];try{fresh=speechSynthesis.getVoices()||[];}catch(e){}
+    if(fresh.length) cachedVoices=fresh;
+    var voices=cachedVoices||[];
+    var base=selLang.tts.split("-")[0].toLowerCase();
+    var want=selLang.tts.toLowerCase();
+    var vl=function(v){return (v.lang||"").toLowerCase().replace("_","-");};
+    var isLocal=function(v){return v.localService===true;};
+    var isRemote=function(v){return v.localService===false;};
+    var exactLocal =voices.filter(function(v){return vl(v)===want && isLocal(v);});
+    var exactRemote=voices.filter(function(v){return vl(v)===want && isRemote(v);});
+    var baseLocal  =voices.filter(function(v){return vl(v).split("-")[0]===base && vl(v)!==want && isLocal(v);});
+    var baseRemote =voices.filter(function(v){return vl(v).split("-")[0]===base && vl(v)!==want && isRemote(v);});
+    var list=[];
+    exactLocal .forEach(function(v){list.push({voice:v,lang:v.lang,label:"local "+v.name+" ("+v.lang+")"});});
+    baseLocal  .forEach(function(v){list.push({voice:v,lang:v.lang,label:"local "+v.name+" ("+v.lang+")"});});
+    // Let the engine auto-pick using just the lang code (often most reliable)
+    list.push({voice:null,lang:selLang.tts,label:"engine default ("+selLang.tts+")"});
+    list.push({voice:null,lang:base,         label:"engine default ("+base+")"});
+    // Network voices as a last resort
+    exactRemote.forEach(function(v){list.push({voice:v,lang:v.lang,label:"remote "+v.name+" ("+v.lang+")"});});
+    baseRemote .forEach(function(v){list.push({voice:v,lang:v.lang,label:"remote "+v.name+" ("+v.lang+")"});});
+    list.push({voice:null,lang:null,label:"system default"});
+    return list;
+  };
+
+  var attempts=buildAttempts();
+  console.log("TTS attempts:",attempts.map(function(a){return a.label;}));
+  console.log("TTS voices available:",(cachedVoices||[]).map(function(v){return v.name+" ["+v.lang+"]"+(v.localService?" local":" net");}));
+
+  var tryAttempt=function(i){
+    if(i>=attempts.length){
+      setPlayId(null);
+      addErrMsg("Aucune voix "+selLang.name+" ne fonctionne sur ce systeme. Verifiez que le pack de langue "+selLang.tts+" est installe (Parametres > Heure et langue > Langue).");
+      return;
+    }
+    var a=attempts[i];
     try{
-      if(!cachedVoices.length){var cv=speechSynthesis.getVoices();if(cv.length)cachedVoices=cv;}
       var u=new SpeechSynthesisUtterance(text);
-      u.lang=selLang.tts; u.rate=0.88; u.pitch=1;
-      if(cachedVoices.length){
-        var base=selLang.tts.split("-")[0].toLowerCase();
-        var want=selLang.tts.toLowerCase();
-        var v=cachedVoices.find(function(x){return (x.lang||"").toLowerCase()===want;})
-            ||cachedVoices.find(function(x){return (x.lang||"").toLowerCase().replace("_","-").startsWith(base);});
-        if(v)u.voice=v;
-      }
+      u.rate=0.88; u.pitch=1;
+      if(a.lang) u.lang=a.lang;
+      if(a.voice) u.voice=a.voice;
       u.onstart=function(){setPlayId(id);};
       u.onend=function(){clearInterval(kaTimer);setPlayId(null);};
       u.onerror=function(e){
-        clearInterval(kaTimer);setPlayId(null);
-        var er=e&&e.error;
-        if(er&&er!=="canceled"&&er!=="interrupted") addErrMsg("TTS erreur: "+er);
+        clearInterval(kaTimer);
+        var er=(e&&e.error)||"";
+        console.warn("TTS attempt "+i+" ("+a.label+") error:",er);
+        if(er==="canceled"||er==="interrupted"){setPlayId(null);return;}
+        // synthesis-failed / audio-busy / audio-hardware / network /
+        // not-allowed / language-unavailable / voice-unavailable: try next.
+        // onstart may have already fired before the engine bailed.
+        tryAttempt(i+1);
       };
-      // Immediate visual feedback so the user knows the click registered
-      // even if onstart is delayed a few hundred ms on some platforms.
       setPlayId(id);
       speechSynthesis.speak(u);
-      // Chrome bug workaround: long utterances stop after ~15s. Start the
-      // keep-alive AFTER speak() and only while something is actually playing.
       kaTimer=setInterval(function(){
         if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}
         try{speechSynthesis.pause();speechSynthesis.resume();}catch(e){}
       },10000);
-    }catch(e){addErrMsg("TTS: "+e.message); setPlayId(null);}
+    }catch(e){
+      console.warn("TTS attempt "+i+" threw:",e.message);
+      tryAttempt(i+1);
+    }
   };
+
+  var doSpeak=function(){ tryAttempt(0); };
 
   // If we just cancelled, give the engine a tick before re-speaking,
   // otherwise the new utterance also gets cancelled.
