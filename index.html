@@ -63,7 +63,7 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 .bbl-u{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:13px 13px 4px 13px;padding:10px 13px;color:#989490;font-size:14px;line-height:1.6;max-width:76%;font-style:italic}
 .bbl-err{background:rgba(200,60,60,.1);border:1px solid rgba(200,60,60,.25);border-radius:8px;padding:10px 12px;color:#e06060;font-size:12px;font-family:sans-serif;line-height:1.55}
 .bbl-raw{background:rgba(100,100,60,.1);border:1px solid rgba(180,160,60,.25);border-radius:8px;padding:10px 12px;color:#c8b860;font-size:11px;font-family:monospace;line-height:1.5;word-break:break-all}
-.tr{font-size:12px;font-family:sans-serif;font-style:italic;color:#2a3a4a;margin-top:4px}
+.tr{font-size:12px;font-family:sans-serif;font-style:italic;color:#b8d0e4;margin-top:6px;padding:6px 10px;background:rgba(56,120,192,.06);border-radius:7px}
 .spkbtn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.2);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:12px;font-family:sans-serif;color:#4a9de0}
 .spkbtn.on{background:rgba(56,120,192,.22)}
 .notes{margin-top:7px;background:rgba(6,12,20,.96);border:1px solid #182030;border-radius:9px;overflow:hidden}
@@ -394,7 +394,16 @@ function addNativeMsg(p,id){
   (function(mid){spk.addEventListener("click",function(){handleSpeak(mid);});})(id);
   right.appendChild(bbl); right.appendChild(spk);
 
-  if(p.translation){var tr=document.createElement("div");tr.className="tr";tr.textContent=p.translation;right.appendChild(tr);}
+  if(p.translation){
+    var trBtn=document.createElement("button"); trBtn.className="spkbtn"; trBtn.textContent="Traduire";
+    var tr=document.createElement("div"); tr.className="tr"; tr.textContent=p.translation; tr.style.display="none";
+    trBtn.addEventListener("click",function(){
+      var shown=tr.style.display!=="none";
+      tr.style.display=shown?"none":"block";
+      trBtn.textContent=shown?"Traduire":"Masquer";
+    });
+    right.appendChild(trBtn); right.appendChild(tr);
+  }
 
   var hasN=(p.corrections&&p.corrections.length)||(p.pronunciation_tips&&p.pronunciation_tips.length);
   if(hasN){
@@ -495,7 +504,9 @@ function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText()
 function handleSpeak(id){
   var text=msgStore[id]||""; if(!text)return;
   if(playId===id){stopSpeak();return;}
-  stopSpeak();
+  // Only cancel if something is already playing — avoids consuming the user gesture in Chrome
+  try{clearInterval(kaTimer); if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();}catch(e){}
+  setPlayId(null);
   try{
     if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
     var go=function(voices){
@@ -510,7 +521,8 @@ function handleSpeak(id){
       u.onend=function(){clearTimeout(fb);fin();};
       u.onerror=function(){clearTimeout(fb);fin();};
       kaTimer=setInterval(function(){if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}speechSynthesis.pause();speechSynthesis.resume();},10000);
-      setPlayId(id); setTimeout(function(){speechSynthesis.speak(u);},50);
+      setPlayId(id);
+      speechSynthesis.speak(u);
     };
     var vs=speechSynthesis.getVoices();
     if(vs.length)go(vs); else{speechSynthesis.onvoiceschanged=function(){go(speechSynthesis.getVoices());};}
