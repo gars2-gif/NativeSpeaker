@@ -10,6 +10,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#0f1318;color:#e0dcd0;font-family:Georgia,serif;overflow:hidden}
+:root{--cfs:16px}
 #app{height:100%;display:flex;flex-direction:column}
 .page{display:none;flex-direction:column;height:100%;overflow:hidden}
 .page.on{display:flex}
@@ -59,21 +60,21 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 #ctx-bar{padding:6px 13px;background:rgba(160,130,50,.07);border-bottom:1px solid rgba(160,130,50,.15);font-size:11px;color:#9a8040;font-family:sans-serif;font-style:italic;flex-shrink:0;display:none}
 #msgs{flex:1;padding:14px 13px;display:flex;flex-direction:column;gap:13px}
 .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3878c0,#1a4070);display:flex;align-items:center;justify-content:center;font-size:13px;font-family:sans-serif;font-weight:700;color:#fff;flex-shrink:0}
-.bbl-n{background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.18);border-radius:4px 13px 13px 13px;padding:10px 13px;color:#e0dcd0;font-size:15px;line-height:1.75}
-.bbl-u{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:13px 13px 4px 13px;padding:10px 13px;color:#989490;font-size:14px;line-height:1.6;max-width:76%;font-style:italic}
+.bbl-n{background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.18);border-radius:4px 13px 13px 13px;padding:10px 13px;color:#e0dcd0;font-size:var(--cfs);line-height:1.75}
+.bbl-u{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:13px 13px 4px 13px;padding:10px 13px;color:#989490;font-size:calc(var(--cfs) - 1px);line-height:1.6;max-width:76%;font-style:italic}
 .bbl-err{background:rgba(200,60,60,.1);border:1px solid rgba(200,60,60,.25);border-radius:8px;padding:10px 12px;color:#e06060;font-size:12px;font-family:sans-serif;line-height:1.55}
 .bbl-raw{background:rgba(100,100,60,.1);border:1px solid rgba(180,160,60,.25);border-radius:8px;padding:10px 12px;color:#c8b860;font-size:11px;font-family:monospace;line-height:1.5;word-break:break-all}
-.tr{font-size:12px;font-family:sans-serif;font-style:italic;color:#b8d0e4;margin-top:6px;padding:6px 10px;background:rgba(56,120,192,.06);border-radius:7px}
-.spkbtn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.2);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:12px;font-family:sans-serif;color:#4a9de0}
+.tr{font-size:calc(var(--cfs) - 2.5px);font-family:sans-serif;font-style:italic;color:#b8d0e4;margin-top:6px;padding:6px 10px;background:rgba(56,120,192,.06);border-radius:7px}
+.spkbtn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.2);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:calc(var(--cfs) - 3px);font-family:sans-serif;color:#4a9de0}
 .spkbtn.on{background:rgba(56,120,192,.22)}
 .notes{margin-top:7px;background:rgba(6,12,20,.96);border:1px solid #182030;border-radius:9px;overflow:hidden}
 .nh{padding:4px 10px;border-bottom:1px solid #101820;font-size:9px;letter-spacing:.15em;color:#243650;text-transform:uppercase;font-family:sans-serif}
 .nr{padding:7px 10px;border-bottom:1px solid #0c1418;display:flex;gap:7px}
 .nr:last-child{border-bottom:none}
 .nw{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.no{font-family:sans-serif;font-size:13px;text-decoration:line-through;color:#c08030;opacity:.85}
-.nf{font-family:sans-serif;font-size:13px;font-weight:600;color:#58c060}
-.ne{font-family:sans-serif;font-size:11px;color:#384858;line-height:1.5}
+.no{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);text-decoration:line-through;color:#c08030;opacity:.85}
+.nf{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);font-weight:600;color:#58c060}
+.ne{font-family:sans-serif;font-size:calc(var(--cfs) - 4px);color:#384858;line-height:1.5}
 .enc{padding:5px 10px;font-size:11px;font-family:sans-serif;font-style:italic;color:#406070}
 .dots-row{display:flex;gap:9px;align-items:center}
 .dots{display:flex;gap:4px;padding:10px 14px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.15);border-radius:4px 13px 13px 13px}
@@ -124,6 +125,25 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 
 <!-- SETUP -->
 <div id="p-setup" class="page">
+  <div style="display:flex;justify-content:flex-end;align-items:center;padding:8px 13px;border-bottom:1px solid #1e2a3a;background:rgba(8,12,18,.96);flex-shrink:0">
+    <button id="settings-btn-setup" onclick="toggleSettingsSetup()" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:13px;font-family:sans-serif;line-height:1">&#9881;</button>
+  </div>
+  <div id="settings-panel-setup" style="display:none;padding:14px;background:rgba(8,12,18,.98);border-bottom:1px solid #1e2a3a;flex-shrink:0;font-family:sans-serif">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Son</div>
+        <div id="set-mute2" style="display:flex;gap:6px"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Vitesse de voix</div>
+        <div id="set-speed2" style="display:flex;gap:6px"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Taille du texte</div>
+        <div id="set-fontsize2" style="display:flex;gap:6px"></div>
+      </div>
+    </div>
+  </div>
   <div class="si scroll">
     <div>
       <div style="font-size:10px;letter-spacing:.2em;color:#2a4060;text-transform:uppercase;font-family:sans-serif;margin-bottom:10px">Langue Natif</div>
@@ -153,7 +173,24 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
     </div>
     <div style="display:flex;align-items:center;gap:7px">
       <div id="step" style="font-size:10px;font-family:sans-serif;color:#2a4060;text-align:right"></div>
-      <button onclick="goSetup()" style="background:none;border:1px solid #1e2a3a;color:#2a3a4a;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:sans-serif">Changer</button>
+      <button id="settings-btn" onclick="toggleSettings()" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:13px;font-family:sans-serif;line-height:1">&#9881;</button>
+      <button onclick="goSetup()" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:sans-serif">Changer</button>
+    </div>
+  </div>
+  <div id="settings-panel" style="display:none;padding:14px;background:rgba(8,12,18,.98);border-bottom:1px solid #1e2a3a;flex-shrink:0;font-family:sans-serif">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Son</div>
+        <div id="set-mute" style="display:flex;gap:6px"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Vitesse de voix</div>
+        <div id="set-speed" style="display:flex;gap:6px"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px">Taille du texte</div>
+        <div id="set-fontsize" style="display:flex;gap:6px"></div>
+      </div>
     </div>
   </div>
   <div id="ctx-bar"></div>
@@ -193,10 +230,17 @@ var convo=[], busy=false;
 var recState="idle", rec=null, finalT="";
 var playId=null, kaTimer=null, msgStore={};
 var cachedVoices=[];
+var ttsRate=parseFloat(localStorage.getItem("rate"))||0.88;
+var muted=localStorage.getItem("muted")==="1";
+var chatFs=parseInt(localStorage.getItem("cfs"))||16;
+var SPEEDS=[{v:0.75,l:"Lent"},{v:0.88,l:"Normal"},{v:1.05,l:"Rapide"},{v:1.25,l:"Vif"}];
+var FONT_SIZES=[{v:14,l:"Petit"},{v:16,l:"Moyen"},{v:18,l:"Grand"},{v:21,l:"Extra"}];
 
 window.addEventListener("DOMContentLoaded",function(){
   apiKey=localStorage.getItem("nk")||"";
+  applyFontSize();
   buildUI();
+  buildSettings();
   if(apiKey) go("p-setup");
   try{
     if(window.speechSynthesis){
@@ -235,6 +279,79 @@ function buildUI(){
     c.addEventListener("click",function(){scenario=s.t;document.getElementById("sctx").value=s.t;buildUI();});
     ch.appendChild(c);
   });
+}
+
+function applyFontSize(){document.documentElement.style.setProperty("--cfs",chatFs+"px");}
+
+function buildSettings(){
+  // helper: render a group into both chat-panel and setup-panel ids
+  function renderGroup(id1,id2,items,activeFn,clickFn){
+    [id1,id2].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      el.innerHTML="";
+      items.forEach(function(o){
+        var b=document.createElement("button");
+        var on=activeFn(o);
+        b.style.cssText="flex:1;padding:7px 4px;background:"+(on?"rgba(74,157,224,.18)":"rgba(255,255,255,.03)")+";border:1px solid "+(on?"#4a9de0":"#1e2a3a")+";border-radius:8px;cursor:pointer;font-size:11px;font-family:sans-serif;color:"+(on?"#4a9de0":"#5a6878")+";display:flex;flex-direction:column;gap:1px;align-items:center";
+        b.innerHTML=o.html;
+        b.addEventListener("click",function(){clickFn(o);});
+        el.appendChild(b);
+      });
+    });
+  }
+  // Mute group (flat style)
+  [{v:false,l:"🔊 Actif",html:"🔊 Actif"},{v:true,l:"🔇 Muet",html:"🔇 Muet"}].forEach(function(o,i,arr){
+    ["set-mute","set-mute2"].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      if(i===0) el.innerHTML="";
+      var b=document.createElement("button");
+      var on=muted===o.v;
+      b.style.cssText="flex:1;padding:8px;background:"+(on?"rgba(74,157,224,.18)":"rgba(255,255,255,.03)")+";border:1px solid "+(on?"#4a9de0":"#1e2a3a")+";border-radius:8px;cursor:pointer;font-size:12px;font-family:sans-serif;color:"+(on?"#4a9de0":"#5a6878");
+      b.textContent=o.l;
+      b.addEventListener("click",function(){
+        muted=o.v; localStorage.setItem("muted",muted?"1":"0");
+        if(muted) stopSpeak();
+        buildSettings();
+      });
+      el.appendChild(b);
+    });
+  });
+  // Speed group
+  renderGroup("set-speed","set-speed2",SPEEDS,
+    function(s){return Math.abs(ttsRate-s.v)<0.01;},
+    function(s){ttsRate=s.v;localStorage.setItem("rate",String(ttsRate));buildSettings();}
+  );
+  SPEEDS.forEach(function(s,i){
+    ["set-speed","set-speed2"].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      var b=el.children[i]; if(!b) return;
+      b.innerHTML='<div style="font-weight:600">'+s.v+'x</div><div style="font-size:9px;opacity:.75">'+s.l+'</div>';
+    });
+  });
+  // Font size group
+  renderGroup("set-fontsize","set-fontsize2",FONT_SIZES,
+    function(f){return chatFs===f.v;},
+    function(f){chatFs=f.v;localStorage.setItem("cfs",String(chatFs));applyFontSize();buildSettings();}
+  );
+  FONT_SIZES.forEach(function(f,i){
+    ["set-fontsize","set-fontsize2"].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      var b=el.children[i]; if(!b) return;
+      b.innerHTML='<div style="font-size:'+(f.v-2)+'px;font-weight:600">A</div><div style="font-size:9px;opacity:.75">'+f.l+'</div>';
+    });
+  });
+}
+
+function toggleSettings(){
+  var p=document.getElementById("settings-panel");
+  if(!p) return;
+  p.style.display=p.style.display==="none"?"flex":"none";
+}
+
+function toggleSettingsSetup(){
+  var p=document.getElementById("settings-panel-setup");
+  if(!p) return;
+  p.style.display=p.style.display==="none"?"flex":"none";
 }
 
 // KEY
@@ -447,218 +564,4 @@ function addNativeMsg(p,id){
     right.appendChild(notes);
   }
 
-  row.appendChild(av); row.appendChild(right);
-  msgs.appendChild(row);
-  row.scrollIntoView({behavior:"smooth",block:"end"});
-}
-
-function addUserMsg(text){
-  var msgs=document.getElementById("msgs");
-  var wrap=document.createElement("div"); wrap.className="fi"; wrap.style.cssText="display:flex;justify-content:flex-end";
-  var b=document.createElement("div"); b.className="bbl-u"; b.textContent=text;
-  wrap.appendChild(b); msgs.appendChild(wrap);
-  wrap.scrollIntoView({behavior:"smooth",block:"end"});
-}
-
-function addErrMsg(msg){
-  var msgs=document.getElementById("msgs");
-  var d=document.createElement("div"); d.className="bbl-err fi";
-  d.textContent="Erreur: "+msg;
-  msgs.appendChild(d);
-  d.scrollIntoView({behavior:"smooth",block:"end"});
-}
-
-function addRawMsg(text){
-  var msgs=document.getElementById("msgs");
-  var d=document.createElement("div"); d.className="bbl-raw fi";
-  d.textContent=text;
-  msgs.appendChild(d);
-  d.scrollIntoView({behavior:"smooth",block:"end"});
-}
-
-var thinkEl=null;
-function showThinking(on){
-  var msgs=document.getElementById("msgs");
-  if(on&&!thinkEl){
-    thinkEl=document.createElement("div"); thinkEl.className="dots-row fi";
-    var av=document.createElement("div"); av.className="av"; av.textContent=selLang.native[0];
-    var dots=document.createElement("div"); dots.className="dots";
-    [0,.18,.36].forEach(function(d){var dot=document.createElement("div");dot.className="dot";dot.style.animation="dt 1.2s ease "+d+"s infinite";dots.appendChild(dot);});
-    thinkEl.appendChild(av); thinkEl.appendChild(dots);
-    msgs.appendChild(thinkEl);
-    thinkEl.scrollIntoView({behavior:"smooth",block:"end"});
-  } else if(!on&&thinkEl){thinkEl.remove();thinkEl=null;}
-  var bm=document.getElementById("bm");
-  bm.className=on?"off":(recState==="listening"?"listening":"idle");
-  bm.disabled=on;
-  syncBtn();
-}
-
-function setStep(txt){document.getElementById("step").textContent=txt;}
-
-// TEXT INPUT
-function sendText(){
-  var ta=document.getElementById("ti"); var t=ta.value.trim();
-  if(!t||busy)return;
-  ta.value=""; resize(ta); syncBtn();
-  addUserMsg(t); callAPI(t);
-}
-function syncBtn(){document.getElementById("bs").disabled=!document.getElementById("ti").value.trim()||busy;}
-function resize(ta){ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,88)+"px";}
-function onKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendText();}}
-
-// TTS
-function handleSpeak(id){
-  var text=msgStore[id]||""; if(!text)return;
-  if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
-
-  // Click on the currently playing button -> stop
-  if(playId===id){
-    try{clearInterval(kaTimer); speechSynthesis.cancel();}catch(e){}
-    setPlayId(null); return;
-  }
-
-  // Stop any other utterance, but ONLY if something is actually speaking.
-  // Calling cancel() on an idle synth and then speak() immediately is a known
-  // Chrome bug: the new utterance fires onstart+onend instantly (= the button
-  // "blinks") without any audio.
-  var wasSpeaking=false;
-  try{wasSpeaking=speechSynthesis.speaking||speechSynthesis.pending;}catch(e){}
-  try{clearInterval(kaTimer);}catch(e){}
-  if(wasSpeaking){
-    try{speechSynthesis.cancel();}catch(e){}
-  }
-  setPlayId(null);
-
-  // Build the list of fallback attempts.
-  // KEY INSIGHT: on Chrome/Edge desktop, getVoices() returns BOTH local
-  // voices (Microsoft SAPI / macOS) and Google's "Network" voices. If
-  // the engine picks a Network voice but the request to Google fails
-  // (offline, blocked, throttled), we get "synthesis-failed" every time
-  // while the local voice would have worked perfectly.
-  // -> Always try local voices FIRST, network voices LAST.
-  var buildAttempts=function(){
-    // Always re-pull voices: the list can change after page load.
-    var fresh=[];try{fresh=speechSynthesis.getVoices()||[];}catch(e){}
-    if(fresh.length) cachedVoices=fresh;
-    var voices=cachedVoices||[];
-    var base=selLang.tts.split("-")[0].toLowerCase();
-    var want=selLang.tts.toLowerCase();
-    var vl=function(v){return (v.lang||"").toLowerCase().replace("_","-");};
-    var isLocal=function(v){return v.localService===true;};
-    var isRemote=function(v){return v.localService===false;};
-    var exactLocal =voices.filter(function(v){return vl(v)===want && isLocal(v);});
-    var exactRemote=voices.filter(function(v){return vl(v)===want && isRemote(v);});
-    var baseLocal  =voices.filter(function(v){return vl(v).split("-")[0]===base && vl(v)!==want && isLocal(v);});
-    var baseRemote =voices.filter(function(v){return vl(v).split("-")[0]===base && vl(v)!==want && isRemote(v);});
-    var list=[];
-    exactLocal .forEach(function(v){list.push({voice:v,lang:v.lang,label:"local "+v.name+" ("+v.lang+")"});});
-    baseLocal  .forEach(function(v){list.push({voice:v,lang:v.lang,label:"local "+v.name+" ("+v.lang+")"});});
-    // Let the engine auto-pick using just the lang code (often most reliable)
-    list.push({voice:null,lang:selLang.tts,label:"engine default ("+selLang.tts+")"});
-    list.push({voice:null,lang:base,         label:"engine default ("+base+")"});
-    // Network voices as a last resort
-    exactRemote.forEach(function(v){list.push({voice:v,lang:v.lang,label:"remote "+v.name+" ("+v.lang+")"});});
-    baseRemote .forEach(function(v){list.push({voice:v,lang:v.lang,label:"remote "+v.name+" ("+v.lang+")"});});
-    list.push({voice:null,lang:null,label:"system default"});
-    return list;
-  };
-
-  var attempts=buildAttempts();
-  console.log("TTS attempts:",attempts.map(function(a){return a.label;}));
-  console.log("TTS voices available:",(cachedVoices||[]).map(function(v){return v.name+" ["+v.lang+"]"+(v.localService?" local":" net");}));
-
-  var tryAttempt=function(i){
-    if(i>=attempts.length){
-      setPlayId(null);
-      addErrMsg("Aucune voix "+selLang.name+" ne fonctionne sur ce systeme. Verifiez que le pack de langue "+selLang.tts+" est installe (Parametres > Heure et langue > Langue).");
-      return;
-    }
-    var a=attempts[i];
-    try{
-      var u=new SpeechSynthesisUtterance(text);
-      u.rate=0.88; u.pitch=1;
-      if(a.lang) u.lang=a.lang;
-      if(a.voice) u.voice=a.voice;
-      u.onstart=function(){setPlayId(id);};
-      u.onend=function(){clearInterval(kaTimer);setPlayId(null);};
-      u.onerror=function(e){
-        clearInterval(kaTimer);
-        var er=(e&&e.error)||"";
-        console.warn("TTS attempt "+i+" ("+a.label+") error:",er);
-        if(er==="canceled"||er==="interrupted"){setPlayId(null);return;}
-        // synthesis-failed / audio-busy / audio-hardware / network /
-        // not-allowed / language-unavailable / voice-unavailable: try next.
-        // onstart may have already fired before the engine bailed.
-        tryAttempt(i+1);
-      };
-      setPlayId(id);
-      speechSynthesis.speak(u);
-      kaTimer=setInterval(function(){
-        if(!speechSynthesis.speaking){clearInterval(kaTimer);return;}
-        try{speechSynthesis.pause();speechSynthesis.resume();}catch(e){}
-      },10000);
-    }catch(e){
-      console.warn("TTS attempt "+i+" threw:",e.message);
-      tryAttempt(i+1);
-    }
-  };
-
-  var doSpeak=function(){ tryAttempt(0); };
-
-  // If we just cancelled, give the engine a tick before re-speaking,
-  // otherwise the new utterance also gets cancelled.
-  if(wasSpeaking) setTimeout(doSpeak,120);
-  else doSpeak();
-}
-function stopSpeak(){try{clearInterval(kaTimer);window.speechSynthesis&&speechSynthesis.cancel();}catch(e){}setPlayId(null);}
-function setPlayId(id){
-  if(playId){var b=document.getElementById("spk-"+playId);if(b){b.textContent="Ecouter";b.classList.remove("on");}}
-  playId=id;
-  if(id){var b=document.getElementById("spk-"+id);if(b){b.textContent="Stop";b.classList.add("on");}}
-}
-
-// STT
-function toggleMic(){
-  if(busy)return;
-  if(recState==="listening"){try{rec.stop();}catch(e){}return;}
-  navigator.mediaDevices.getUserMedia({audio:true})
-  .then(function(stream){stream.getTracks().forEach(function(t){t.stop();});startRec();})
-  .catch(function(e){addErrMsg("Micro refuse: "+e.name);});
-}
-function startRec(){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){addErrMsg("Reconnaissance vocale non disponible. Utilisez Chrome.");return;}
-  try{
-    rec=new SR(); rec.lang=selLang.sr; rec.interimResults=true; rec.continuous=false;
-    finalT=""; setLive("",false);
-    rec.onstart=function(){setRS("listening");};
-    rec.onresult=function(e){
-      var interim="",fin="";
-      for(var i=0;i<e.results.length;i++){if(e.results[i].isFinal)fin+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript;}
-      if(fin)finalT=fin; setLive(fin||interim,true);
-    };
-    rec.onend=function(){
-      setRS("idle"); setLive("",false);
-      var t=finalT.trim();
-      if(t){addUserMsg(t);callAPI(t);}
-    };
-    rec.onerror=function(e){setRS("idle");setLive("",false);if(e.error!=="aborted"&&e.error!=="no-speech")addErrMsg("Micro: "+e.error);};
-    rec.start();
-  }catch(e){addErrMsg("Demarrage micro: "+e.message);setRS("idle");}
-}
-function setRS(s){
-  recState=s;
-  var bm=document.getElementById("bm"); bm.className=busy?"off":s;
-  document.getElementById("mh").textContent=s==="listening"?"En cours... (appuyez pour arreter)":"Appuyez pour parler";
-  document.getElementById("mh").style.color=s==="listening"?"#a03030":"#2a3a4a";
-  var mw=document.getElementById("mw"); mw.querySelectorAll(".ring").forEach(function(r){r.remove();});
-  if(s==="listening"){var r1=document.createElement("div");r1.className="ring";var r2=document.createElement("div");r2.className="ring ring2";mw.insertBefore(r2,mw.firstChild);mw.insertBefore(r1,mw.firstChild);}
-}
-
-// UTILS
-function go(id){document.querySelectorAll(".page").forEach(function(p){p.classList.remove("on");});document.getElementById(id).classList.add("on");}
-function setLive(t,show){var el=document.getElementById("live");el.textContent=t||"...";el.style.opacity=show?"1":"0";}
-</script>
-</body>
-</html>
+  row.appendChild(av); row.appendC
