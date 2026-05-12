@@ -37,7 +37,8 @@
 
 <!-- ══════════════════════════════════════════════════════ SETUP PAGE ══ -->
 <div id="p-setup" class="page">
-  <div style="display:flex;justify-content:flex-end;align-items:center;padding:8px 13px;border-bottom:1px solid #1e2a3a;background:rgba(8,12,18,.96);flex-shrink:0">
+  <div style="display:flex;justify-content:flex-end;align-items:center;gap:7px;padding:8px 13px;border-bottom:1px solid #1e2a3a;background:rgba(8,12,18,.96);flex-shrink:0">
+    <button id="vocab-btn-setup" aria-label="Ouvrir le vocabulaire" class="topbar-icon-btn">&#128218;</button>
     <button id="settings-btn-setup" aria-label="Ouvrir les réglages" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:13px;font-family:sans-serif;line-height:1">&#9881;</button>
   </div>
   <div id="settings-panel-setup" class="settings-panel">
@@ -84,6 +85,7 @@
     </div>
     <div style="display:flex;align-items:center;gap:7px">
       <div id="step" style="font-size:10px;font-family:sans-serif;color:#2a4060;text-align:right"></div>
+      <button id="vocab-btn-chat" aria-label="Ouvrir le vocabulaire" class="topbar-icon-btn">&#128218;</button>
       <button id="settings-btn" aria-label="Ouvrir les réglages" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:13px;font-family:sans-serif;line-height:1">&#9881;</button>
       <button id="btn-gosetup" style="background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:sans-serif">Changer de langue</button>
     </div>
@@ -116,6 +118,16 @@
     </div>
     <div id="mh">Maintenez pour parler</div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ VOCAB PAGE ══ -->
+<div id="p-vocab" class="page">
+  <div class="vocab-topbar">
+    <button id="btn-vocab-back" class="topbar-icon-btn" aria-label="Retour">&#8592;</button>
+    <span class="vocab-title">Vocabulaire</span>
+  </div>
+  <div id="vocab-tabs" class="vocab-tabs"></div>
+  <div id="vocab-list" class="vocab-list scroll"></div>
 </div>
 
 </div>

@@ -1,8 +1,9 @@
 // ── Application orchestrator ──────────────────────────────────────────────────
-// Wires all modules together and owns the three pages' logic:
+// Wires all modules together and owns the four pages' logic:
 //   • Key page    — save/test/delete API key
 //   • Setup page  — pick language, level, scenario
 //   • Chat page   — send messages, receive replies, TTS/STT (Push-To-Talk)
+//   • Vocab page  — browse & delete the saved vocabulary dictionary
 
 import { LANGS, LEVELS, SCENS }                    from './constants.js';
 import { getState, setState, initStore }            from './store.js';
@@ -18,6 +19,7 @@ import {
   clearMessages, addNativeMsg, addUserMsg,
   addErrMsg, addRawMsg, showThinking, syncSpeakButtons,
 } from './ui/messages.js';
+import { getVocab, getAllVocabLangs, deleteVocabEntry } from './vocab.js';
 
 // ── DOM shorthand ─────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -375,6 +377,89 @@ function _togglePanel(panelId) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// VOCAB PAGE
+// ════════════════════════════════════════════════════════════════════════════
+
+// Remembers which language tab is active while on the vocab page
+let _vocabActiveLang = null;
+
+function _openVocab(returnPage) {
+  // Store the page we came from so the back button knows where to go
+  $('btn-vocab-back')._returnPage = returnPage;
+  _renderVocabPage();
+  navigate('p-vocab');
+}
+
+function _renderVocabPage() {
+  const langs     = getAllVocabLangs();
+  const tabsEl    = $('vocab-tabs');
+  const listEl    = $('vocab-list');
+
+  // Pick active lang: keep current if still valid, otherwise first available
+  if (!langs.includes(_vocabActiveLang)) {
+    _vocabActiveLang = langs[0] || null;
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  tabsEl.innerHTML = '';
+  if (!langs.length) {
+    listEl.innerHTML = '<div class="vocab-empty">Aucun mot enregistré pour l\'instant.<br>Les corrections de vocabulaire apparaîtront ici automatiquement.</div>';
+    return;
+  }
+
+  langs.forEach(code => {
+    const langMeta = LANGS.find(l => l.code === code);
+    const count    = getVocab(code).length;
+    const btn      = document.createElement('button');
+    btn.className  = 'vocab-tab' + (code === _vocabActiveLang ? ' active' : '');
+    btn.innerHTML  = `${langMeta ? langMeta.flag + ' ' + langMeta.name : code} <span class="vocab-tab-count">${count}</span>`;
+    btn.addEventListener('click', () => { _vocabActiveLang = code; _renderVocabPage(); });
+    tabsEl.appendChild(btn);
+  });
+
+  // ── Entry list ─────────────────────────────────────────────────────────────
+  listEl.innerHTML = '';
+  const entries = getVocab(_vocabActiveLang);
+
+  if (!entries.length) {
+    listEl.innerHTML = '<div class="vocab-empty">Aucun mot enregistré dans cette langue.</div>';
+    return;
+  }
+
+  entries.forEach(entry => {
+    const card = document.createElement('div');
+    card.className = 'vocab-card fi';
+
+    card.innerHTML = `
+      <div class="vocab-card-top">
+        <span class="vocab-word">${entry.word}</span>
+        ${entry.count > 1 ? `<span class="vocab-count">${entry.count}×</span>` : ''}
+        <button class="vocab-delete" aria-label="Supprimer ${entry.word}" data-word="${entry.word}">✕</button>
+      </div>
+      ${entry.original ? `<div class="vocab-original"><span class="vocab-original-word">${entry.original}</span> → <span class="vocab-corrected-word">${entry.word}</span></div>` : ''}
+      ${entry.explanation ? `<div class="vocab-explanation">${entry.explanation}</div>` : ''}
+      <div class="vocab-date">${entry.date}</div>
+    `;
+
+    card.querySelector('.vocab-delete').addEventListener('click', () => {
+      deleteVocabEntry(_vocabActiveLang, entry.word);
+      _renderVocabPage();
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+function initVocabPage() {
+  $('btn-vocab-back').addEventListener('click', () => {
+    const returnPage = $('btn-vocab-back')._returnPage || 'p-setup';
+    navigate(returnPage);
+  });
+  $('vocab-btn-setup').addEventListener('click', () => _openVocab('p-setup'));
+  $('vocab-btn-chat').addEventListener('click',  () => _openVocab('p-chat'));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -417,6 +502,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initKeyPage();
   initSetupPage();
   initChatPage();
+  initVocabPage();
 
   // 7. Build the dynamic setup UI (language/level/scenario selectors)
   buildSetupUI();

@@ -169,3 +169,35 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 .no{color:#e05050;opacity:.9}
 .ne{color:#6a8898}
 .nh{color:#6a8898}
+
+/* ── Topbar icon button (book, shared style) ────────────────────── */
+.topbar-icon-btn{background:none;border:1px solid #1e2a3a;color:#8090a0;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:14px;font-family:sans-serif;line-height:1;flex-shrink:0}
+.topbar-icon-btn:hover{border-color:#4a9de0;color:#4a9de0}
+
+/* ── Vocab page ─────────────────────────────────────────────────── */
+#p-vocab{background:#0f1318}
+.vocab-topbar{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid #1e2a3a;background:rgba(8,12,18,.96);flex-shrink:0}
+.vocab-title{font-size:14px;font-family:sans-serif;font-weight:600;color:#c8c4bc;letter-spacing:.04em}
+
+/* Language tabs */
+.vocab-tabs{display:flex;gap:6px;padding:10px 13px;flex-shrink:0;overflow-x:auto;border-bottom:1px solid #1e2a3a}
+.vocab-tab{background:rgba(255,255,255,.03);border:1px solid #1e2a3a;border-radius:16px;padding:5px 12px;cursor:pointer;font-size:12px;font-family:sans-serif;color:#6a7a8a;white-space:nowrap}
+.vocab-tab.active{background:rgba(74,157,224,.12);border-color:#4a9de0;color:#4a9de0}
+.vocab-tab-count{background:rgba(74,157,224,.2);border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;margin-left:4px}
+
+/* Entry list */
+.vocab-list{flex:1;padding:12px 13px;display:flex;flex-direction:column;gap:8px}
+.vocab-empty{font-family:sans-serif;font-size:13px;color:#2a3a4a;text-align:center;padding:40px 20px;line-height:1.8}
+
+/* Entry card */
+.vocab-card{background:#141c26;border:1px solid #1e2a3a;border-radius:11px;padding:12px 13px;display:flex;flex-direction:column;gap:5px}
+.vocab-card-top{display:flex;align-items:center;gap:8px}
+.vocab-word{font-family:sans-serif;font-size:16px;font-weight:600;color:#e0dcd0;flex:1}
+.vocab-count{background:rgba(74,157,224,.15);border:1px solid rgba(74,157,224,.25);border-radius:8px;padding:1px 7px;font-size:10px;font-family:sans-serif;color:#4a9de0;flex-shrink:0}
+.vocab-delete{background:none;border:none;color:#2a3a4a;font-size:12px;cursor:pointer;padding:2px 5px;border-radius:5px;flex-shrink:0;line-height:1}
+.vocab-delete:hover{color:#e06060;background:rgba(200,60,60,.1)}
+.vocab-original{font-family:sans-serif;font-size:12px}
+.vocab-original-word{color:#e05050;text-decoration:line-through;opacity:.85}
+.vocab-corrected-word{color:#58c060;font-weight:600}
+.vocab-explanation{font-family:sans-serif;font-size:12px;color:#6a8898;line-height:1.55}
+.vocab-date{font-family:sans-serif;font-size:10px;color:#1e2a3a;text-align:right}

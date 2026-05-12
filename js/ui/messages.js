@@ -7,6 +7,7 @@
 import { getState, setState } from '../store.js';
 import { speak, stop as stopTTS } from '../tts.js';
 import { cancelAPI } from '../api.js';
+import { saveVocabCorrections } from '../vocab.js';
 
 const _msgStore = new Map(); // id → text (for speak buttons)
 let   _msgRefs  = [];        // [{dom, role}] — ordered list of message rows
@@ -269,6 +270,11 @@ export function addNativeMsg(parsed, id) {
   }
 
   // Notes: corrections + pronunciation tips + corrected_sentence
+  // Auto-save vocabulaire corrections to the persistent dictionary
+  if (parsed.corrections && parsed.corrections.length) {
+    saveVocabCorrections(selLang.code, parsed.corrections);
+  }
+
   const hasCorrections = parsed.corrections && parsed.corrections.length;
   const hasTips        = parsed.pronunciation_tips && parsed.pronunciation_tips.length;
   const hasSentence    = parsed.corrected_sentence && parsed.corrected_sentence.trim();
