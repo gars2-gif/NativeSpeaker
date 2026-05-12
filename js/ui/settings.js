@@ -93,4 +93,9 @@ function renderFontSize() {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/*
+/** Render all settings groups into their containers. Call once after DOM ready. */
+export function initSettings() {
+  renderMute();
+  renderSpeed();
+  renderFontSize();
+}

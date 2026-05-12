@@ -151,4 +151,7 @@ export function speak(id, text, langCode, rate) {
     }
   }
 
-  // 
+  // Give the engine a tick after cancelling to avoid the Chrome "blink" bug
+  if (wasSpeaking) setTimeout(() => tryAttempt(0), 120);
+  else tryAttempt(0);
+}

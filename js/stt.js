@@ -197,4 +197,14 @@ function _startRec() {
     _rec.onerror = e => {
       if (e.error === 'aborted' || e.error === 'no-speech') return;
       _isPressing = false;
-      if (_cb.onError) _cb.onError('Micro
+      if (_cb.onError) _cb.onError('Micro: ' + e.error);
+      _finishRec();
+    };
+
+    _rec.start();
+  } catch (e) {
+    _isPressing = false;
+    if (_cb.onError) _cb.onError('Demarrage micro: ' + e.message);
+    _setState('idle');
+  }
+}

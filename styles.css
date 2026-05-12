@@ -153,4 +153,19 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* Mic button icon wrapper — prevents pointer capture issues */
 .bm-i{display:inline-block;pointer-events:none;user-select:none;-webkit-user-select:none}
 
-/* Prevent long-press text selection & context menu on the 
+/* Prevent long-press text selection & context menu on the mic button */
+#bm{touch-action:none}
+
+/* Trash cancel zone */
+#trash{position:absolute;left:calc(50% - 110px);top:50%;transform:translateY(-50%);
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(200,60,60,.16);border:2px solid rgba(200,60,60,.4);
+  display:none;align-items:center;justify-content:center;
+  font-size:22px;color:#e08080;pointer-events:none;
+  transition:transform .15s,background .15s,border-color .15s}
+#trash.armed{background:rgba(200,60,60,.45);border-color:#e06060;color:#fff;animation:trash-bounce .4s ease infinite}
+
+/* Notes corrections: red strikethrough */
+.no{color:#e05050;opacity:.9}
+.ne{color:#6a8898}
+.nh{color:#6a8898}

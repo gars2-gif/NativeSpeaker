@@ -416,4 +416,16 @@ window.addEventListener('DOMContentLoaded', () => {
   // 6. Init page-specific event listeners
   initKeyPage();
   initSetupPage();
-  in
+  initChatPage();
+
+  // 7. Build the dynamic setup UI (language/level/scenario selectors)
+  buildSetupUI();
+
+  // 8. Lifecycle: stop TTS + STT automatically when leaving the chat page
+  onLeave('p-chat', () => { stopTTS(); stopSTT(); });
+
+  // 9. Navigate to the right starting page
+  const { apiKey } = getState();
+  if (apiKey) navigate('p-setup');
+  // else stay on p-key (already visible via HTML class="page on")
+});

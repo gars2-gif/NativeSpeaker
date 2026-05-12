@@ -31,8 +31,8 @@ export function makeSystem(lang, level, scenario) {
     `You are ${lang.native}, a native ${lang.name} speaker from ${lang.city}.${ctx}` +
     ` Converse naturally with a French learner at ${level} level.` +
     ` CRITICAL: Reply with ONLY a JSON object. No text before or after. No markdown. No backticks. Just JSON.` +
-    ` Format: {"reply":"your response in ${lang.name}","translation":"french translation","corrections":[{"type":"grammaire|vocabulaire|orthographe","original":"...","corrected":"...","explanation":"..."}],"pronunciation_tips":[{"word":"...","phonetic":"...","tip":"..."}],"corrected_sentence":"the user's full message rewritten correctly in ${lang.name}, or empty string if no corrections needed"}` +
-    ` Keep reply to 1-3 short spoken sentences. The corrected_sentence field MUST contain the full corrected version of what the user just said when there are any errors. Leave it as empty string only if the user wrote perfectly correct ${lang.name}.`
+    ` Format: {"reply":"your response in ${lang.name}","translation":"MANDATORY: traduction en français de votre réplique, toujours en français peu importe la langue cible","corrections":[{"type":"grammaire|vocabulaire|orthographe","original":"...","corrected":"...","explanation":"..."}],"pronunciation_tips":[{"word":"...","phonetic":"...","tip":"..."}],"corrected_sentence":"the user's full message rewritten correctly in ${lang.name}, or empty string if no corrections needed"}` +
+    ` Keep reply to 1-3 short spoken sentences. The 'translation' field MUST always be in French. The corrected_sentence field MUST contain the full corrected version of what the user just said when there are any errors. Leave it as empty string only if the user wrote perfectly correct ${lang.name}.`
   );
 }
 
@@ -111,4 +111,9 @@ export async function testAPIKey(key) {
   const res = await fetch(API_URL, {
     method:  'POST',
     headers: _headers(key),
-    body:    JSON.stringify({ model: MODEL, max_tokens: 5, messages: [{ role:'user', content:'Hi' }] })
+    body:    JSON.stringify({ model: MODEL, max_tokens: 5, messages: [{ role:'user', content:'Hi' }] }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return true;
+}

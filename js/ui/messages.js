@@ -417,4 +417,22 @@ export function showThinking(on) {
     _thinkEl = document.createElement('div');
     _thinkEl.className = 'dots-row fi';
 
-    const av   = document.createElement('div'); av.className = 'av'; av.textContent = s
+    const av   = document.createElement('div'); av.className = 'av'; av.textContent = selLang.native[0];
+    const dots = document.createElement('div'); dots.className = 'dots';
+    [0, 0.18, 0.36].forEach(delay => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.animation = `dt 1.2s ease ${delay}s infinite`;
+      dots.appendChild(dot);
+    });
+
+    _thinkEl.appendChild(av);
+    _thinkEl.appendChild(dots);
+    msgs.appendChild(_thinkEl);
+    _scrollToBottom(_thinkEl);
+
+  } else if (!on && _thinkEl) {
+    _thinkEl.remove();
+    _thinkEl = null;
+  }
+}
