@@ -1,19 +1,18 @@
 // ── Chat message rendering ────────────────────────────────────────────────────
 // Builds and appends message bubbles to #msgs.
 // Uses CSS classes everywhere — no inline style strings in JS.
-// msgStore maps message IDs to their text for the TTS speak buttons.
+// _msgStore maps message IDs to their text for the TTS speak buttons.
+// _msgRefs  tracks DOM wrappers + role for long-press delete/modify.
 
-import { getState } from '../store.js';
-import { speak } from '../tts.js';
+import { getState, setState } from '../store.js';
+import { speak, stop as stopTTS } from '../tts.js';
+import { cancelAPI } from '../api.js';
 
 const _msgStore = new Map(); // id → text (for speak buttons)
+let   _msgRefs  = [];        // [{dom, role}] — ordered list of message rows
 
 // ── Public: speak button state sync (called by TTS onPlayChange) ──────────────
 
-/**
- * Update the visual state of speak buttons when playback changes.
- * Called from app.js via the TTS onPlayChange callback.
- */
 export function syncSpeakButtons(prevId, nextId) {
   if (prevId) {
     const b = document.getElementById('spk-' + prevId);
@@ -25,7 +24,7 @@ export function syncSpeakButtons(prevId, nextId) {
   }
 }
 
-// ── Internal: speak handler attached to each button ───────────────────────────
+// ── Internal: speak handler attached to each main speak button ────────────────
 
 function _handleSpeak(id) {
   const text = _msgStore.get(id);
@@ -38,6 +37,7 @@ function _handleSpeak(id) {
 
 export function clearMessages() {
   _msgStore.clear();
+  _msgRefs = [];
   const msgs = document.getElementById('msgs');
   if (msgs) msgs.innerHTML = '';
 }
@@ -48,10 +48,170 @@ function _scrollToBottom(el) {
   el.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
+// ── Long-press detector ───────────────────────────────────────────────────────
+
+function _attachLongPress(el, cb) {
+  let timer = null, startX = 0, startY = 0, moved = false;
+  el.style.cursor = 'pointer';
+  el.addEventListener('pointerdown', e => {
+    moved = false; startX = e.clientX; startY = e.clientY;
+    timer = setTimeout(() => {
+      if (!moved) {
+        try { navigator.vibrate && navigator.vibrate(40); } catch (_) {}
+        cb();
+      }
+    }, 520);
+  });
+  el.addEventListener('pointermove', e => {
+    if (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10) {
+      moved = true; clearTimeout(timer);
+    }
+  });
+  el.addEventListener('pointerup',     () => clearTimeout(timer));
+  el.addEventListener('pointercancel', () => clearTimeout(timer));
+  el.addEventListener('pointerleave',  () => clearTimeout(timer));
+  el.addEventListener('contextmenu',   e  => e.preventDefault());
+}
+
+// ── Message context menu (modify / delete) ────────────────────────────────────
+
+function _closeMsgMenu() {
+  const m = document.getElementById('msg-menu');
+  if (m && m.parentNode) m.parentNode.removeChild(m);
+  document.removeEventListener('pointerdown', _msgMenuOutside, true);
+}
+
+function _msgMenuOutside(e) {
+  const m = document.getElementById('msg-menu');
+  if (m && !m.contains(e.target)) _closeMsgMenu();
+}
+
+function _showMsgMenu(wrap, bubble, text, onModify, onDelete) {
+  _closeMsgMenu();
+  const menu = document.createElement('div');
+  menu.id = 'msg-menu';
+  menu.style.cssText =
+    'position:fixed;background:#1a2230;border:1px solid #2a3a50;border-radius:11px;' +
+    'padding:5px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.6);' +
+    'display:flex;flex-direction:column;gap:2px;min-width:180px;font-family:sans-serif';
+
+  function _mkBtn(color, icon, label, handler) {
+    const btn = document.createElement('button');
+    btn.style.cssText =
+      `background:none;border:none;color:${color};padding:11px 14px;` +
+      'text-align:left;cursor:pointer;font-size:14px;border-radius:7px;' +
+      'display:flex;align-items:center;gap:10px';
+    btn.innerHTML = `<span style="font-size:15px">${icon}</span> ${label}`;
+    btn.addEventListener('pointerover', () => { btn.style.background = 'rgba(74,157,224,.15)'; });
+    btn.addEventListener('pointerout',  () => { btn.style.background = 'none'; });
+    btn.addEventListener('click', handler);
+    return btn;
+  }
+
+  const modBtn = _mkBtn('#c8d4e0', '✏️', 'Modifier', () => {
+    _deleteFromTurn(wrap);
+    if (onModify) onModify(text);
+    _closeMsgMenu();
+  });
+  const delBtn = _mkBtn('#e0a0a0', '🗑️', 'Supprimer', () => {
+    _deleteFromTurn(wrap);
+    if (onDelete) onDelete();
+    _closeMsgMenu();
+  });
+  menu.appendChild(modBtn);
+  menu.appendChild(delBtn);
+  document.body.appendChild(menu);
+
+  // Position above the bubble (or below if not enough space)
+  const rect   = bubble.getBoundingClientRect();
+  const menuW  = menu.offsetWidth;
+  const menuH  = menu.offsetHeight;
+  let top  = rect.top - menuH - 8;
+  let left = rect.right - menuW;
+  if (top  < 60) top  = rect.bottom + 8;
+  if (left < 10) left = 10;
+  menu.style.top  = top  + 'px';
+  menu.style.left = left + 'px';
+
+  setTimeout(() => document.addEventListener('pointerdown', _msgMenuOutside, true), 80);
+}
+
+// ── Delete from a turn onwards (and truncate convo in store) ─────────────────
+
+function _deleteFromTurn(wrap) {
+  const idx = _msgRefs.findIndex(r => r.dom === wrap);
+  if (idx < 0) return;
+
+  // Abort any in-flight API call and reset busy
+  cancelAPI();
+  setState('busy', false);
+
+  // Remove DOM elements from idx onwards
+  _msgRefs.slice(idx).forEach(r => { if (r.dom?.parentNode) r.dom.parentNode.removeChild(r.dom); });
+  _msgRefs.splice(idx);
+
+  // Truncate convo to match remaining msgRefs
+  const userTurns = _msgRefs.filter(r => r.role === 'user').length;
+  const keep = 2 + userTurns * 2; // __init__ user + assistant + subsequent pairs
+  const convo = getState().convo;
+  if (convo.length > keep) setState('convo', convo.slice(0, keep));
+
+  // Clean up TTS and thinking indicator
+  stopTTS();
+  showThinking(false);
+}
+
+// ── Corrected-sentence speak button ──────────────────────────────────────────
+
+/**
+ * Build a standalone ▶ Ecouter button that speaks arbitrary text.
+ * Used for the corrected_sentence block.
+ */
+export function makeSpeakBtn(text) {
+  const btn = document.createElement('button');
+  btn.style.cssText =
+    'background:rgba(88,192,96,.1);border:1px solid rgba(88,192,96,.3);' +
+    'border-radius:14px;padding:3px 10px;cursor:pointer;font-size:11px;' +
+    'font-family:sans-serif;color:#90d8a0;display:inline-flex;align-items:center;' +
+    'gap:4px;margin-left:8px;vertical-align:middle';
+  btn.textContent = '▶ Ecouter';
+  let playing = false;
+
+  btn.addEventListener('click', () => {
+    if (playing) {
+      try { speechSynthesis.cancel(); } catch (_) {}
+      btn.textContent = '▶ Ecouter'; playing = false; return;
+    }
+    try { speechSynthesis.cancel(); } catch (_) {}
+    if (!window.speechSynthesis) { return; }
+    const { selLang, ttsRate } = getState();
+    const doSpeak = voices => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = selLang.tts; u.rate = ttsRate; u.pitch = 1;
+      const base = selLang.tts.split('-')[0];
+      const v = voices.find(v => v.lang === selLang.tts) ||
+                voices.find(v => v.lang.startsWith(base));
+      if (v) u.voice = v;
+      let done = false;
+      const fin = () => { if (done) return; done = true; playing = false; btn.textContent = '▶ Ecouter'; };
+      const fb  = setTimeout(fin, Math.max(text.split(/\s+/).length * 500, 2500));
+      u.onend  = () => { clearTimeout(fb); fin(); };
+      u.onerror = () => { clearTimeout(fb); fin(); };
+      playing = true; btn.textContent = '■ Stop';
+      speechSynthesis.speak(u);
+    };
+    const vs = speechSynthesis.getVoices();
+    if (vs.length) doSpeak(vs);
+    else speechSynthesis.onvoiceschanged = () => doSpeak(speechSynthesis.getVoices());
+  });
+  return btn;
+}
+
 // ── Public: add messages ──────────────────────────────────────────────────────
 
 /**
- * Add a native-speaker bubble with optional translation, notes, and speak button.
+ * Add a native-speaker bubble with optional translation, notes, corrected_sentence,
+ * and speak button.
  */
 export function addNativeMsg(parsed, id) {
   const { selLang, muted } = getState();
@@ -80,34 +240,39 @@ export function addNativeMsg(parsed, id) {
 
   // Speak button
   const spk   = document.createElement('button');
-  spk.className = 'spkbtn';
-  spk.id        = 'spk-' + id;
+  spk.className   = 'spkbtn';
+  spk.id          = 'spk-' + id;
   spk.textContent = 'Ecouter';
   spk.addEventListener('click', () => _handleSpeak(id));
   right.appendChild(spk);
 
-  // Translation toggle
+  // Translation toggle ("Voir traduction" / "Cacher traduction")
   if (parsed.translation) {
     const trBtn = document.createElement('button');
-    trBtn.className   = 'spkbtn';
-    trBtn.textContent = 'Traduire';
+    trBtn.style.cssText =
+      'margin-top:6px;margin-left:6px;background:rgba(180,160,90,.08);' +
+      'border:1px solid rgba(180,160,90,.22);border-radius:16px;padding:4px 11px;' +
+      'cursor:pointer;font-size:12px;font-family:sans-serif;color:#b09060';
+    trBtn.textContent = 'Voir traduction';
     const tr    = document.createElement('div');
     tr.className    = 'tr';
     tr.textContent  = parsed.translation;
     tr.style.display = 'none';
     trBtn.addEventListener('click', () => {
       const shown = tr.style.display !== 'none';
-      tr.style.display  = shown ? 'none' : 'block';
-      trBtn.textContent = shown ? 'Traduire' : 'Masquer';
+      tr.style.display  = shown ? 'none' : '';
+      trBtn.textContent = shown ? 'Voir traduction' : 'Cacher traduction';
     });
     right.appendChild(trBtn);
     right.appendChild(tr);
   }
 
-  // Notes: corrections + pronunciation tips + encouragement
-  const hasNotes = (parsed.corrections && parsed.corrections.length) ||
-                   (parsed.pronunciation_tips && parsed.pronunciation_tips.length);
-  if (hasNotes) {
+  // Notes: corrections + pronunciation tips + corrected_sentence
+  const hasCorrections = parsed.corrections && parsed.corrections.length;
+  const hasTips        = parsed.pronunciation_tips && parsed.pronunciation_tips.length;
+  const hasSentence    = parsed.corrected_sentence && parsed.corrected_sentence.trim();
+
+  if (hasCorrections || hasTips || hasSentence) {
     const notes = document.createElement('div');
     notes.className = 'notes';
 
@@ -125,9 +290,9 @@ export function addNativeMsg(parsed, id) {
 
       const body = document.createElement('div');
       const wds  = document.createElement('div'); wds.className = 'nw';
-      const o    = document.createElement('span'); o.className = 'no';  o.textContent = c.original;
+      const o    = document.createElement('span'); o.className = 'no';    o.textContent = c.original;
       const arr  = document.createElement('span'); arr.className = 'nr-arrow'; arr.textContent = ' > ';
-      const f    = document.createElement('span'); f.className = 'nf';  f.textContent = c.corrected;
+      const f    = document.createElement('span'); f.className = 'nf';    f.textContent = c.corrected;
       wds.appendChild(o); wds.appendChild(arr); wds.appendChild(f);
 
       const ex = document.createElement('div'); ex.className = 'ne'; ex.textContent = c.explanation;
@@ -156,12 +321,29 @@ export function addNativeMsg(parsed, id) {
       notes.appendChild(r);
     });
 
-    // Encouragement
-    if (parsed.encouragement) {
-      const enc = document.createElement('div');
-      enc.className   = 'enc';
-      enc.textContent = parsed.encouragement;
-      notes.appendChild(enc);
+    // Corrected sentence block
+    if (hasSentence) {
+      const fix = document.createElement('div');
+      fix.style.cssText =
+        'padding:8px 12px;background:rgba(88,192,96,.07);border-top:1px solid #0e1a14;' +
+        'font-size:12.5px;font-family:sans-serif;line-height:1.5';
+
+      const lblRow = document.createElement('div');
+      lblRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:3px';
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:9px;letter-spacing:.18em;color:#90d8a0;text-transform:uppercase;font-weight:600';
+      lbl.textContent = 'Version correcte';
+      const playBtn = makeSpeakBtn(parsed.corrected_sentence);
+      lblRow.appendChild(lbl);
+      lblRow.appendChild(playBtn);
+
+      const sen = document.createElement('div');
+      sen.style.cssText = 'color:#b8e8c0;font-style:italic';
+      sen.textContent = parsed.corrected_sentence;
+
+      fix.appendChild(lblRow);
+      fix.appendChild(sen);
+      notes.appendChild(fix);
     }
 
     right.appendChild(notes);
@@ -170,22 +352,30 @@ export function addNativeMsg(parsed, id) {
   row.appendChild(av);
   row.appendChild(right);
   msgs.appendChild(row);
+  _msgRefs.push({ dom: row, role: 'assistant' });
   _scrollToBottom(row);
 
   // Auto-speak unless muted
   if (!muted) setTimeout(() => _handleSpeak(id), 150);
 }
 
-/** Add a user text bubble (right-aligned, italic). */
-export function addUserMsg(text) {
+/**
+ * Add a user text bubble (right-aligned, italic) with long-press menu.
+ * @param {string}        text
+ * @param {function|null} onModify - called with (text) when user chooses Modify
+ * @param {function|null} onDelete - called when user chooses Delete
+ */
+export function addUserMsg(text, onModify, onDelete) {
   const msgs = document.getElementById('msgs');
   const wrap = document.createElement('div');
   wrap.className = 'fi msg-row-user';
-  const b    = document.createElement('div');
-  b.className   = 'bbl-u';
+  const b = document.createElement('div');
+  b.className   = 'bbl-u no-sel';
   b.textContent = text;
+  _attachLongPress(b, () => _showMsgMenu(wrap, b, text, onModify, onDelete));
   wrap.appendChild(b);
   msgs.appendChild(wrap);
+  _msgRefs.push({ dom: wrap, role: 'user' });
   _scrollToBottom(wrap);
 }
 
@@ -218,7 +408,7 @@ let _thinkEl = null;
  * @param {boolean} on
  */
 export function showThinking(on) {
-  const msgs      = document.getElementById('msgs');
+  const msgs        = document.getElementById('msgs');
   const { selLang } = getState();
 
   if (on && !_thinkEl) {
@@ -230,7 +420,6 @@ export function showThinking(on) {
     [0, 0.18, 0.36].forEach(delay => {
       const dot = document.createElement('div');
       dot.className = 'dot';
-      // Delays are per-dot so must stay inline
       dot.style.animation = `dt 1.2s ease ${delay}s infinite`;
       dots.appendChild(dot);
     });

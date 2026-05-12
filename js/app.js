@@ -2,14 +2,16 @@
 // Wires all modules together and owns the three pages' logic:
 //   • Key page    — save/test/delete API key
 //   • Setup page  — pick language, level, scenario
-//   • Chat page   — send messages, receive replies, TTS/STT
+//   • Chat page   — send messages, receive replies, TTS/STT (Push-To-Talk)
 
 import { LANGS, LEVELS, SCENS }                    from './constants.js';
 import { getState, setState, initStore }            from './store.js';
 import { navigate, onLeave }                        from './router.js';
 import { initTTS, stop as stopTTS }                from './tts.js';
-import { initSTT, toggle as sttToggle,
-         stop as stopSTT, getRecState }            from './stt.js';
+import {
+  initSTT, startPTT, movePTT, stopPTT,
+  preWarmMic, stop as stopSTT, getRecState,
+}                                                   from './stt.js';
 import { callAPI, testAPIKey, makeSystem }         from './api.js';
 import { initSettings }                            from './ui/settings.js';
 import {
@@ -76,14 +78,14 @@ function buildSetupUI() {
   // ── Languages ─────────────────────────────────────────────────────────────
   const ll = $('ll'); ll.innerHTML = '';
   LANGS.forEach(l => {
-    const b   = document.createElement('button');
+    const b = document.createElement('button');
     b.className = 'lang-btn' + (l.code === selLang.code ? ' sel' : '');
 
-    const fl  = document.createElement('span'); fl.className = 'lang-flag';  fl.textContent = l.flag;
-    const n   = document.createElement('span');
+    const fl = document.createElement('span'); fl.className = 'lang-flag';  fl.textContent = l.flag;
+    const n  = document.createElement('span');
     n.className   = 'lang-name' + (l.code === selLang.code ? ' sel' : '');
     n.textContent = l.name;
-    const s   = document.createElement('span'); s.className = 'lang-with';  s.textContent = 'avec ' + l.native;
+    const s  = document.createElement('span'); s.className = 'lang-with'; s.textContent = 'avec ' + l.native;
 
     b.appendChild(fl); b.appendChild(n); b.appendChild(s);
     if (l.code === selLang.code) {
@@ -130,6 +132,9 @@ function _startChat() {
 
   const { selLang, selLevel, scenario } = getState();
 
+  // Hide settings panel if open
+  const sp = $('settings-panel'); if (sp) sp.classList.remove('open');
+
   // Update topbar
   $('tf').textContent = selLang.flag;
   $('tn').textContent = selLang.native + ' - ' + selLang.city;
@@ -138,9 +143,13 @@ function _startChat() {
   // Context bar
   const cb = $('ctx-bar');
   if (scenario) { cb.textContent = scenario; cb.style.display = ''; }
-  else            { cb.style.display = 'none'; }
+  else          { cb.style.display = 'none'; }
 
   navigate('p-chat');
+
+  // Pre-warm mic for instant first PTT response
+  preWarmMic().catch(() => {});
+
   _doCallAPI('__init__');
 }
 
@@ -166,11 +175,17 @@ function initChatPage() {
   });
   $('bs').addEventListener('click', _sendText);
 
-  // Mic button
-  $('bm').addEventListener('click', () => {
-    const { selLang, busy } = getState();
-    sttToggle(selLang.sr, busy);
+  // Push-to-talk mic button — pointer events (not click)
+  const bm = $('bm');
+  bm.addEventListener('pointerdown',   e => startPTT(e, getState().selLang.sr));
+  bm.addEventListener('pointermove',   e => {
+    const tr   = $('trash');
+    const rect = tr && tr.style.display !== 'none' ? tr.getBoundingClientRect() : null;
+    movePTT(e, rect);
   });
+  bm.addEventListener('pointerup',     e => stopPTT(e));
+  bm.addEventListener('pointercancel', e => stopPTT(e));
+  bm.addEventListener('contextmenu',   e => e.preventDefault());
 }
 
 // ── Text send ─────────────────────────────────────────────────────────────────
@@ -182,7 +197,7 @@ function _sendText() {
   ta.value = '';
   _resizeTextarea(ta);
   _syncSendBtn();
-  addUserMsg(t);
+  addUserMsg(t, _onModifyMessage, _onDeleteMessage);
   _doCallAPI(t);
 }
 
@@ -195,11 +210,25 @@ function _resizeTextarea(ta) {
   ta.style.height = Math.min(ta.scrollHeight, 88) + 'px';
 }
 
+// ── Modify / Delete callbacks (from long-press menu) ─────────────────────────
+
+function _onModifyMessage(text) {
+  const ta = $('ti');
+  ta.value = text;
+  _resizeTextarea(ta);
+  _syncSendBtn();
+  ta.focus();
+}
+
+function _onDeleteMessage() {
+  // deleteFromTurn already handled everything in messages.js
+}
+
 // ── Step indicator ────────────────────────────────────────────────────────────
 
 function _setStep(txt) { $('step').textContent = txt; }
 
-// ── Mic UI ────────────────────────────────────────────────────────────────────
+// ── Mic / rec-banner / trash UI ───────────────────────────────────────────────
 
 function _setLive(text, visible) {
   const el = $('live');
@@ -207,19 +236,52 @@ function _setLive(text, visible) {
   el.style.opacity = visible ? '1' : '0';
 }
 
+/** Called by STT onTrashState: 'hidden' | 'visible' | 'armed' */
+function _onTrashState(state) {
+  const tr = $('trash');
+  if (!tr) return;
+  if (state === 'hidden') {
+    tr.style.display = 'none';
+    tr.classList.remove('armed');
+  } else if (state === 'visible') {
+    tr.style.display = 'flex';
+    tr.classList.remove('armed');
+  } else if (state === 'armed') {
+    tr.style.display = 'flex';
+    tr.classList.add('armed');
+  }
+  // Update hint text
+  const mh = $('mh');
+  if (mh && state === 'armed') {
+    mh.textContent = 'Relachez pour annuler';
+    mh.style.color = '#e08080';
+  } else if (mh && state === 'visible') {
+    mh.textContent = 'Relachez pour envoyer';
+    mh.style.color = '#e08080';
+  }
+}
+
+/** Called by STT onRecBanner */
+function _onRecBanner(visible) {
+  const bn = $('rec-banner');
+  if (bn) bn.style.display = visible ? 'flex' : 'none';
+}
+
 function _updateMicBtn() {
   const { busy } = getState();
   const recState = getRecState();
   const bm = $('bm');
-  bm.className = busy ? 'off' : recState; // 'idle' | 'listening' | 'off'
+  bm.className = (busy ? 'off' : recState) + ' no-sel';
   bm.disabled  = busy;
   _syncSendBtn();
 }
 
 function _onRecStateChange(s) {
   const mh = $('mh');
-  mh.textContent = s === 'listening' ? 'En cours... (appuyez pour arreter)' : 'Appuyez pour parler';
-  mh.style.color = s === 'listening' ? '#a03030' : '#2a3a4a';
+  if (mh) {
+    mh.textContent = s === 'listening' ? 'Relachez pour envoyer' : 'Maintenez pour parler';
+    mh.style.color = s === 'listening' ? '#e08080' : '#2a3a4a';
+  }
 
   // Ring animations
   const mw = $('mw');
@@ -241,7 +303,7 @@ async function _doCallAPI(userText) {
   setState('busy', true);
 
   const content = userText === '__init__'
-    ? 'You are starting. Greet the user and ask a simple opening question. Set corrections:[] and pronunciation_tips:[] and encouragement:"".'
+    ? 'You are starting the conversation. Greet the user and ask a simple opening question. Set corrections:[] and pronunciation_tips:[] and corrected_sentence:"".'
     : userText;
 
   // Add user turn to history
@@ -268,12 +330,14 @@ async function _doCallAPI(userText) {
       addRawMsg('Reponse non-JSON recu:\n' + rawText.substring(0, 400));
       _setStep('Erreur JSON');
       setState('busy', false);
+      _updateMicBtn();
       return;
     }
     if (!parsed.reply) {
       addRawMsg('Champ reply absent. JSON recu: ' + JSON.stringify(parsed).substring(0, 300));
       _setStep('Erreur reply');
       setState('busy', false);
+      _updateMicBtn();
       return;
     }
 
@@ -288,9 +352,14 @@ async function _doCallAPI(userText) {
   } catch (e) {
     showThinking(false);
     _updateMicBtn();
-    console.error('callAPI error:', e);
-    addErrMsg(e.message);
-    _setStep('Erreur');
+    // Ignore AbortError (user deleted the turn)
+    if (e.name !== 'AbortError') {
+      console.error('callAPI error:', e);
+      addErrMsg(e.message);
+      _setStep('Erreur');
+    } else {
+      _setStep('');
+    }
   }
 
   setState('busy', false);
@@ -332,8 +401,13 @@ window.addEventListener('DOMContentLoaded', () => {
   initSTT({
     onStateChange: _onRecStateChange,
     onLive:        (text, visible) => _setLive(text, visible),
-    onFinal:       text => { addUserMsg(text); _doCallAPI(text); },
+    onFinal:       text => {
+      addUserMsg(text, _onModifyMessage, _onDeleteMessage);
+      _doCallAPI(text);
+    },
     onError:       msg  => addErrMsg(msg),
+    onTrashState:  _onTrashState,
+    onRecBanner:   _onRecBanner,
   });
 
   // 5. Render settings panels (both pages)

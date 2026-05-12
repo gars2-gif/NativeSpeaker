@@ -12,6 +12,12 @@
 <body>
 <div id="app">
 
+<!-- Recording banner (fixed overlay, shown while PTT is active) -->
+<div id="rec-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1000;background:linear-gradient(180deg,#c03030,#8a1818);color:#fff;text-align:center;padding:9px 12px;font-family:sans-serif;font-size:13px;font-weight:600;letter-spacing:.08em;box-shadow:0 4px 16px rgba(192,48,48,.4);align-items:center;justify-content:center;gap:10px">
+  <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#fff;animation:rec-blink .6s ease infinite"></span>
+  <span>ENREGISTREMENT EN COURS — RELACHEZ POUR ENVOYER</span>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ KEY PAGE ══ -->
 <div id="p-key" class="page on">
   <div id="status"></div>
@@ -103,8 +109,11 @@
       <textarea id="ti" rows="1" placeholder="Ecrivez ici..."></textarea>
       <button id="bs" disabled>&#8593;</button>
     </div>
-    <div id="mw"><button id="bm" class="idle">&#127897;&#65039;</button></div>
-    <div id="mh">Appuyez pour parler</div>
+    <div id="mw">
+      <div id="trash">&#128465;</div>
+      <button id="bm" class="idle no-sel"><span class="bm-i" aria-hidden="true">&#127897;&#65039;</span></button>
+    </div>
+    <div id="mh">Maintenez pour parler</div>
   </div>
 </div>
 

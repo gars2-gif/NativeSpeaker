@@ -6,6 +6,8 @@ const API_URL     = 'https://api.anthropic.com/v1/messages';
 const MODEL       = 'claude-haiku-4-5-20251001';
 const API_VERSION = '2023-06-01';
 
+let _abort = null; // current AbortController (for cancelAPI)
+
 function _headers(apiKey) {
   return {
     'Content-Type':  'application/json',
@@ -29,8 +31,8 @@ export function makeSystem(lang, level, scenario) {
     `You are ${lang.native}, a native ${lang.name} speaker from ${lang.city}.${ctx}` +
     ` Converse naturally with a French learner at ${level} level.` +
     ` CRITICAL: Reply with ONLY a JSON object. No text before or after. No markdown. No backticks. Just JSON.` +
-    ` Format: {"reply":"your response in ${lang.name}","translation":"french translation","corrections":[],"pronunciation_tips":[],"encouragement":""}` +
-    ` Keep reply to 1-3 short spoken sentences. corrections and pronunciation_tips are arrays of correction objects.`
+    ` Format: {"reply":"your response in ${lang.name}","translation":"french translation","corrections":[{"type":"grammaire|vocabulaire|orthographe","original":"...","corrected":"...","explanation":"..."}],"pronunciation_tips":[{"word":"...","phonetic":"...","tip":"..."}],"corrected_sentence":"the user's full message rewritten correctly in ${lang.name}, or empty string if no corrections needed"}` +
+    ` Keep reply to 1-3 short spoken sentences. The corrected_sentence field MUST contain the full corrected version of what the user just said when there are any errors. Leave it as empty string only if the user wrote perfectly correct ${lang.name}.`
   );
 }
 
@@ -56,6 +58,13 @@ export function parseReply(text) {
   return null;
 }
 
+// ── Cancel in-flight request ──────────────────────────────────────────────────
+
+/** Abort the currently running callAPI request, if any. Safe to call anytime. */
+export function cancelAPI() {
+  try { if (_abort) _abort.abort(); } catch (_) {}
+}
+
 // ── Main chat call ────────────────────────────────────────────────────────────
 
 /**
@@ -64,13 +73,16 @@ export function parseReply(text) {
  * @param {object[]} messages  - full conversation history (role/content pairs)
  * @param {string}   system    - system prompt from makeSystem()
  * @returns {Promise<{rawText: string, parsed: object|null}>}
- * @throws  on HTTP errors or API-level errors
+ * @throws  on HTTP errors or API-level errors (AbortError is re-thrown as-is)
  */
 export async function callAPI(apiKey, messages, system) {
+  _abort = new AbortController();
+
   const res = await fetch(API_URL, {
     method:  'POST',
     headers: _headers(apiKey),
     body:    JSON.stringify({ model: MODEL, max_tokens: 800, system, messages }),
+    signal:  _abort.signal,
   });
 
   if (!res.ok) {
