@@ -34,6 +34,4 @@ export const SPEEDS = [
 export const FONT_SIZES = [
   { v:14, l:'Petit' },
   { v:16, l:'Moyen' },
-  { v:18, l:'Grand' },
-  { v:21, l:'Extra' },
-];
+  { v:18, l:'

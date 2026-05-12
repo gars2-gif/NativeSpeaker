@@ -111,9 +111,4 @@ export async function testAPIKey(key) {
   const res = await fetch(API_URL, {
     method:  'POST',
     headers: _headers(key),
-    body:    JSON.stringify({ model: MODEL, max_tokens: 5, messages: [{ role:'user', content:'Hi' }] }),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return true;
-}
+    body:    JSON.stringify({ model: MODEL, max_tokens: 5, messages: [{ role:'user', content:'Hi' }] })

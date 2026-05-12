@@ -16,7 +16,7 @@ let   _msgRefs  = [];        // [{dom, role}] — ordered list of message rows
 export function syncSpeakButtons(prevId, nextId) {
   if (prevId) {
     const b = document.getElementById('spk-' + prevId);
-    if (b) { b.textContent = 'Ecouter'; b.classList.remove('on'); }
+    if (b) { b.textContent = 'Écouter'; b.classList.remove('on'); }
   }
   if (nextId && !nextId.startsWith('error:')) {
     const b = document.getElementById('spk-' + nextId);
@@ -164,7 +164,7 @@ function _deleteFromTurn(wrap) {
 // ── Corrected-sentence speak button ──────────────────────────────────────────
 
 /**
- * Build a standalone ▶ Ecouter button that speaks arbitrary text.
+ * Build a standalone ▶ Écouter button that speaks arbitrary text.
  * Used for the corrected_sentence block.
  */
 export function makeSpeakBtn(text) {
@@ -174,13 +174,13 @@ export function makeSpeakBtn(text) {
     'border-radius:14px;padding:3px 10px;cursor:pointer;font-size:11px;' +
     'font-family:sans-serif;color:#90d8a0;display:inline-flex;align-items:center;' +
     'gap:4px;margin-left:8px;vertical-align:middle';
-  btn.textContent = '▶ Ecouter';
+  btn.textContent = '▶ Écouter';
   let playing = false;
 
   btn.addEventListener('click', () => {
     if (playing) {
       try { speechSynthesis.cancel(); } catch (_) {}
-      btn.textContent = '▶ Ecouter'; playing = false; return;
+      btn.textContent = '▶ Écouter'; playing = false; return;
     }
     try { speechSynthesis.cancel(); } catch (_) {}
     if (!window.speechSynthesis) { return; }
@@ -193,7 +193,7 @@ export function makeSpeakBtn(text) {
                 voices.find(v => v.lang.startsWith(base));
       if (v) u.voice = v;
       let done = false;
-      const fin = () => { if (done) return; done = true; playing = false; btn.textContent = '▶ Ecouter'; };
+      const fin = () => { if (done) return; done = true; playing = false; btn.textContent = '▶ Écouter'; };
       const fb  = setTimeout(fin, Math.max(text.split(/\s+/).length * 500, 2500));
       u.onend  = () => { clearTimeout(fb); fin(); };
       u.onerror = () => { clearTimeout(fb); fin(); };
@@ -235,6 +235,7 @@ export function addNativeMsg(parsed, id) {
   // Main bubble
   const bbl   = document.createElement('div');
   bbl.className = 'bbl-n';
+  bbl.setAttribute('lang', selLang.tts.split('-')[0]);
   bbl.textContent = parsed.reply;
   right.appendChild(bbl);
 
@@ -242,7 +243,7 @@ export function addNativeMsg(parsed, id) {
   const spk   = document.createElement('button');
   spk.className   = 'spkbtn';
   spk.id          = 'spk-' + id;
-  spk.textContent = 'Ecouter';
+  spk.textContent = 'Écouter';
   spk.addEventListener('click', () => _handleSpeak(id));
   right.appendChild(spk);
 
@@ -384,7 +385,8 @@ export function addErrMsg(msg) {
   const msgs = document.getElementById('msgs');
   const d    = document.createElement('div');
   d.className   = 'bbl-err fi';
-  d.textContent = 'Erreur: ' + msg;
+  d.setAttribute('role', 'alert');
+  d.textContent = 'Erreur : ' + msg;
   msgs.appendChild(d);
   _scrollToBottom(d);
 }
@@ -415,22 +417,4 @@ export function showThinking(on) {
     _thinkEl = document.createElement('div');
     _thinkEl.className = 'dots-row fi';
 
-    const av   = document.createElement('div'); av.className = 'av'; av.textContent = selLang.native[0];
-    const dots = document.createElement('div'); dots.className = 'dots';
-    [0, 0.18, 0.36].forEach(delay => {
-      const dot = document.createElement('div');
-      dot.className = 'dot';
-      dot.style.animation = `dt 1.2s ease ${delay}s infinite`;
-      dots.appendChild(dot);
-    });
-
-    _thinkEl.appendChild(av);
-    _thinkEl.appendChild(dots);
-    msgs.appendChild(_thinkEl);
-    _scrollToBottom(_thinkEl);
-
-  } else if (!on && _thinkEl) {
-    _thinkEl.remove();
-    _thinkEl = null;
-  }
-}
+    const av   = document.createElement('div'); av.className = 'av'; av.textContent = s

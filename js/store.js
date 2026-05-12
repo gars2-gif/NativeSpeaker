@@ -46,6 +46,4 @@ export function initStore() {
 
   _state.muted = localStorage.getItem('muted') === '1';
 
-  const cfs = parseInt(localStorage.getItem('cfs'), 10);
-  if (!isNaN(cfs)) _state.chatFs = cfs;
-}
+  const cfs = parseInt(localStorage.getItem('cfs'),

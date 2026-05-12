@@ -26,5 +26,4 @@ export function navigate(pageId) {
  */
 export function onLeave(pageId, fn) {
   if (!_leaveHooks[pageId]) _leaveHooks[pageId] = [];
-  _leaveHooks[pageId].push(fn);
-}
+  _lea

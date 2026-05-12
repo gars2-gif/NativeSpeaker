@@ -12,6 +12,9 @@ html,body{height:100%;background:#0f1318;color:#e0dcd0;font-family:Georgia,serif
 /* ── Shared form elements ───────────────────────────────────── */
 input,textarea{background:#1e2a38;border:1px solid #2a3a4e;border-radius:10px;padding:11px 13px;color:#e0dcd0;font-size:15px;font-family:sans-serif;width:100%;outline:none}
 input:focus,textarea:focus{border-color:#4a9de0}
+
+/* ── Focus ring (keyboard navigation) ──────────────────────────── */
+:focus-visible{outline:2px solid #4a9de0;outline-offset:2px}
 textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 .btn{padding:13px;border:none;border-radius:11px;font-size:15px;font-family:sans-serif;cursor:pointer;width:100%;font-weight:600;margin-bottom:8px}
 .blue{background:linear-gradient(135deg,#1e5898,#0e3060);color:#fff}
@@ -34,7 +37,7 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* ── Setup page ─────────────────────────────────────────────── */
 #p-setup{background:#0f1318}
 .si{flex:1;padding:24px 18px;display:flex;flex-direction:column;gap:16px;max-width:500px;width:100%;margin:0 auto}
-.lbl{font-size:10px;letter-spacing:.2em;color:#2a3a4a;text-transform:uppercase;font-family:sans-serif;margin-bottom:7px}
+.lbl{font-size:10px;letter-spacing:.2em;color:#6a8898;text-transform:uppercase;font-family:sans-serif;margin-bottom:7px}
 .lang-row{display:flex;flex-direction:column;gap:6px}
 .lang-btn{display:flex;align-items:center;gap:10px;padding:10px 13px;background:rgba(255,255,255,.03);border:1px solid #1e2a3a;border-radius:9px;cursor:pointer;text-align:left;width:100%}
 .lang-btn.sel{background:rgba(74,157,224,.1);border-color:#4a9de0}
@@ -48,7 +51,7 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* ── Chat page ──────────────────────────────────────────────── */
 #p-chat{background:#0f1318}
 #topbar{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid #1e2a3a;background:rgba(8,12,18,.96);flex-shrink:0}
-#ctx-bar{padding:6px 13px;background:rgba(160,130,50,.07);border-bottom:1px solid rgba(160,130,50,.15);font-size:11px;color:#9a8040;font-family:sans-serif;font-style:italic;flex-shrink:0;display:none}
+#ctx-bar{padding:6px 13px;background:rgba(160,130,50,.07);border-bottom:1px solid rgba(160,130,50,.15);font-size:11px;color:#b09858;font-family:sans-serif;font-style:italic;flex-shrink:0;display:none}
 #msgs{flex:1;padding:14px 13px;display:flex;flex-direction:column;gap:13px}
 
 /* ── Message bubbles ────────────────────────────────────────── */
@@ -75,20 +78,20 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 
 /* ── Notes panel ────────────────────────────────────────────── */
 .notes{margin-top:7px;background:rgba(6,12,20,.96);border:1px solid #182030;border-radius:9px;overflow:hidden}
-.nh{padding:4px 10px;border-bottom:1px solid #101820;font-size:9px;letter-spacing:.15em;color:#243650;text-transform:uppercase;font-family:sans-serif}
+.nh{padding:4px 10px;border-bottom:1px solid #101820;font-size:11px;letter-spacing:.15em;color:#6a8898;text-transform:uppercase;font-family:sans-serif}
 .nr{padding:7px 10px;border-bottom:1px solid #0c1418;display:flex;gap:7px}
 .nr:last-child{border-bottom:none}
 .nw{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px}
 .no{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);text-decoration:line-through;color:#c08030;opacity:.85}
 .nf{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);font-weight:600;color:#58c060}
-.ne{font-family:sans-serif;font-size:calc(var(--cfs) - 4px);color:#384858;line-height:1.5}
-.enc{padding:5px 10px;font-size:11px;font-family:sans-serif;font-style:italic;color:#406070}
+.ne{font-family:sans-serif;font-size:calc(var(--cfs) - 4px);color:#6a8898;line-height:1.5}
+.enc{padding:5px 10px;font-size:11px;font-family:sans-serif;font-style:italic;color:#6a8898}
 
 /* ── Note row icons (replaces inline style.cssText) ─────────── */
 .nr-ico{font-size:11px;font-family:sans-serif;font-weight:700;flex-shrink:0}
 .nr-ico-correction{color:#c08030}
 .nr-ico-sound{color:#6070b0}
-.nr-arrow{color:#2a3a4a;font-size:10px}
+.nr-arrow{color:#6a8898;font-size:10px}
 .pt-word{font-family:sans-serif;font-size:13px;font-weight:600;color:#a0a8c0}
 .pt-phonetic{font-family:sans-serif;font-size:13px;font-style:italic;color:#6878b8}
 
@@ -106,7 +109,7 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 #bm.idle{background:linear-gradient(135deg,#184878,#0c2848);box-shadow:0 0 0 3px rgba(74,157,224,.15)}
 #bm.listening{background:linear-gradient(135deg,#b02828,#7a1818);animation:mg .9s ease infinite}
 #bm.off{background:rgba(18,26,38,.8);cursor:not-allowed}
-#mh{font-size:11px;font-family:sans-serif;color:#2a3a4a;text-align:center}
+#mh{font-size:12px;font-family:sans-serif;color:#6a8898;text-align:center}
 
 /* ── Thinking dots ──────────────────────────────────────────── */
 .dots-row{display:flex;gap:9px;align-items:center}
@@ -116,8 +119,13 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* ── Settings panels ────────────────────────────────────────── */
 .settings-panel{display:none;padding:14px;background:rgba(8,12,18,.98);border-bottom:1px solid #1e2a3a;flex-shrink:0;font-family:sans-serif;flex-direction:column;gap:14px}
 .settings-panel.open{display:flex}
-.set-group-label{font-size:10px;letter-spacing:.16em;color:#7898b8;text-transform:uppercase;margin-bottom:6px}
+.set-group-label{font-size:10px;letter-spacing:.16em;color:#6a8898;text-transform:uppercase;margin-bottom:6px}
 .set-group{display:flex;gap:6px}
+
+/* Settings panel divider & link-style action button */
+.set-divider{height:1px;background:#1e2a3a;margin:2px 0}
+.set-link-btn{background:none;border:none;color:#6a8898;font-size:12px;font-family:sans-serif;cursor:pointer;padding:4px 2px;text-align:left;opacity:.85}
+.set-link-btn:hover{color:#4a9de0;opacity:1}
 
 /* Settings buttons — speed/fontsize (column layout) */
 .set-btn{flex:1;padding:7px 4px;background:rgba(255,255,255,.03);border:1px solid #1e2a3a;border-radius:8px;cursor:pointer;font-size:11px;font-family:sans-serif;color:#5a6878;display:flex;flex-direction:column;gap:1px;align-items:center}
@@ -125,7 +133,7 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* Mute buttons override to row layout */
 .set-btn-mute{flex-direction:row;padding:8px;font-size:12px}
 .set-btn-val{font-weight:600}
-.set-btn-lbl{font-size:9px;opacity:.75}
+.set-btn-lbl{font-size:11px;opacity:.85}
 
 /* ── Animations ─────────────────────────────────────────────── */
 @keyframes rp{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.6);opacity:0}}
@@ -145,19 +153,4 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 /* Mic button icon wrapper — prevents pointer capture issues */
 .bm-i{display:inline-block;pointer-events:none;user-select:none;-webkit-user-select:none}
 
-/* Prevent long-press text selection & context menu on the mic button */
-#bm{touch-action:none}
-
-/* Trash cancel zone */
-#trash{position:absolute;left:calc(50% - 110px);top:50%;transform:translateY(-50%);
-  width:54px;height:54px;border-radius:50%;
-  background:rgba(200,60,60,.16);border:2px solid rgba(200,60,60,.4);
-  display:none;align-items:center;justify-content:center;
-  font-size:22px;color:#e08080;pointer-events:none;
-  transition:transform .15s,background .15s,border-color .15s}
-#trash.armed{background:rgba(200,60,60,.45);border-color:#e06060;color:#fff;animation:trash-bounce .4s ease infinite}
-
-/* Notes corrections: red strikethrough */
-.no{color:#e05050;opacity:.9}
-.ne{color:#9aaab8}
-.nh{color:#7898b8}
+/* Prevent long-press text selection & context menu on the 

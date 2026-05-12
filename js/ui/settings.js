@@ -28,6 +28,7 @@ function renderGroup(containerIds, items, isActiveFn, onClickFn, labelFn, extraC
     items.forEach(item => {
       const b = document.createElement('button');
       b.className = 'set-btn' + (extraClass ? ' ' + extraClass : '') + (isActiveFn(item) ? ' on' : '');
+      b.setAttribute('aria-pressed', isActiveFn(item) ? 'true' : 'false');
       b.innerHTML = labelFn(item);
       b.addEventListener('click', () => onClickFn(item));
       el.appendChild(b);
@@ -92,9 +93,4 @@ function renderFontSize() {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/** Render all settings groups into their containers. Call once after DOM ready. */
-export function initSettings() {
-  renderMute();
-  renderSpeed();
-  renderFontSize();
-}
+/*
