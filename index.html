@@ -68,13 +68,13 @@ textarea{resize:none;line-height:1.5;font-family:Georgia,serif}
 .spkbtn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.2);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:calc(var(--cfs) - 3px);font-family:sans-serif;color:#4a9de0}
 .spkbtn.on{background:rgba(56,120,192,.22)}
 .notes{margin-top:7px;background:rgba(6,12,20,.96);border:1px solid #182030;border-radius:9px;overflow:hidden}
-.nh{padding:4px 10px;border-bottom:1px solid #101820;font-size:9px;letter-spacing:.15em;color:#243650;text-transform:uppercase;font-family:sans-serif}
+.nh{padding:5px 11px;border-bottom:1px solid #101820;font-size:9px;letter-spacing:.18em;color:#7898b8;text-transform:uppercase;font-family:sans-serif}
 .nr{padding:7px 10px;border-bottom:1px solid #0c1418;display:flex;gap:7px}
 .nr:last-child{border-bottom:none}
 .nw{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:2px}
-.no{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);text-decoration:line-through;color:#c08030;opacity:.85}
+.no{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);text-decoration:line-through;color:#e05050;opacity:.9}
 .nf{font-family:sans-serif;font-size:calc(var(--cfs) - 2px);font-weight:600;color:#58c060}
-.ne{font-family:sans-serif;font-size:calc(var(--cfs) - 4px);color:#384858;line-height:1.5}
+.ne{font-family:sans-serif;font-size:calc(var(--cfs) - 3.5px);color:#9aaab8;line-height:1.55}
 .enc{padding:5px 10px;font-size:11px;font-family:sans-serif;font-style:italic;color:#406070}
 .dots-row{display:flex;gap:9px;align-items:center}
 .dots{display:flex;gap:4px;padding:10px 14px;background:rgba(56,120,192,.08);border:1px solid rgba(56,120,192,.15);border-radius:4px 13px 13px 13px}
@@ -442,8 +442,8 @@ function makeSystem(){
   return "You are "+selLang.native+", a native "+selLang.name+" speaker from "+selLang.city+"."+ctx+
     " Converse naturally with a French learner at "+selLevel+" level."+
     " CRITICAL: Reply with ONLY a JSON object. No text before or after. No markdown. No backticks. Just JSON."+
-    " Format: {\"reply\":\"your response in "+selLang.name+"\",\"translation\":\"french translation\",\"corrections\":[],\"pronunciation_tips\":[],\"encouragement\":\"\"}"+
-    " Keep reply to 1-3 short spoken sentences. corrections and pronunciation_tips are arrays of correction objects.";
+    " Format: {\"reply\":\"your response in "+selLang.name+"\",\"translation\":\"french translation\",\"corrections\":[{\"type\":\"grammaire|vocabulaire|orthographe\",\"original\":\"...\",\"corrected\":\"...\",\"explanation\":\"...\"}],\"pronunciation_tips\":[{\"word\":\"...\",\"phonetic\":\"...\",\"tip\":\"...\"}],\"corrected_sentence\":\"the user's full message rewritten correctly in "+selLang.name+", or empty string if no corrections needed\"}"+
+    " Keep reply to 1-3 short spoken sentences. The corrected_sentence field MUST contain the full corrected version of what the user just said when there are any errors. Leave it as empty string only if the user wrote perfectly correct "+selLang.name+".";
 }
 
 // EXTRACT JSON from response (very permissive)
@@ -466,7 +466,7 @@ async function callAPI(userText){
 
   // Build message (skip __init__ from user history display)
   var content=userText==="__init__"
-    ?"You are starting. Greet the user and ask a simple opening question. Set corrections:[] and pronunciation_tips:[] and encouragement:\"\"."
+    ?"You are starting the conversation. Greet the user and ask a simple opening question. Set corrections:[] and pronunciation_tips:[] and corrected_sentence:\"\"."
     :userText;
 
   convo.push({role:"user",content:content});
@@ -552,17 +552,18 @@ function addNativeMsg(p,id){
   right.appendChild(bbl); right.appendChild(spk);
 
   if(p.translation){
-    var trBtn=document.createElement("button"); trBtn.className="spkbtn"; trBtn.textContent="Traduire";
+    var trbtn=document.createElement("button");
+    trbtn.style.cssText="margin-top:6px;margin-left:6px;background:rgba(180,160,90,.08);border:1px solid rgba(180,160,90,.22);border-radius:16px;padding:4px 11px;cursor:pointer;font-size:12px;font-family:sans-serif;color:#b09060";
+    trbtn.textContent="Voir traduction";
     var tr=document.createElement("div"); tr.className="tr"; tr.textContent=p.translation; tr.style.display="none";
-    trBtn.addEventListener("click",function(){
-      var shown=tr.style.display!=="none";
-      tr.style.display=shown?"none":"block";
-      trBtn.textContent=shown?"Traduire":"Masquer";
+    trbtn.addEventListener("click",function(){
+      if(tr.style.display==="none"){tr.style.display="";trbtn.textContent="Cacher traduction";}
+      else{tr.style.display="none";trbtn.textContent="Voir traduction";}
     });
-    right.appendChild(trBtn); right.appendChild(tr);
+    right.appendChild(trbtn); right.appendChild(tr);
   }
 
-  var hasN=(p.corrections&&p.corrections.length)||(p.pronunciation_tips&&p.pronunciation_tips.length);
+  var hasN=(p.corrections&&p.corrections.length)||(p.pronunciation_tips&&p.pronunciation_tips.length)||(p.corrected_sentence&&p.corrected_sentence.trim());
   if(hasN){
     var notes=document.createElement("div"); notes.className="notes";
     var nh=document.createElement("div"); nh.className="nh"; nh.textContent="Notes"; notes.appendChild(nh);
@@ -572,28 +573,43 @@ function addNativeMsg(p,id){
       ico.textContent=({grammaire:"Gr",vocabulaire:"Vo",orthographe:"Or"}[c.type]||"?")+" ";
       var body=document.createElement("div");
       var wds=document.createElement("div"); wds.className="nw";
-      var o=document.createElement("span");o.className="no";o.textContent=c.original;
-      var a=document.createElement("span");a.style.cssText="color:#2a3a4a;font-size:10px";a.textContent=" > ";
-      var f=document.createElement("span");f.className="nf";f.textContent=c.corrected;
-      wds.appendChild(o);wds.appendChild(a);wds.appendChild(f);
-      var ex=document.createElement("div");ex.className="ne";ex.textContent=c.explanation;
-      body.appendChild(wds);body.appendChild(ex);
-      r.appendChild(ico);r.appendChild(body);notes.appendChild(r);
+      var o=document.createElement("span"); o.className="no"; o.textContent=c.original;
+      var a=document.createElement("span"); a.style.cssText="color:#8090a0;font-size:10px"; a.textContent=" > ";
+      var f=document.createElement("span"); f.className="nf"; f.textContent=c.corrected;
+      wds.appendChild(o); wds.appendChild(a); wds.appendChild(f);
+      var ex=document.createElement("div"); ex.className="ne"; ex.textContent=c.explanation;
+      body.appendChild(wds); body.appendChild(ex);
+      r.appendChild(ico); r.appendChild(body); notes.appendChild(r);
     });
     (p.pronunciation_tips||[]).forEach(function(pt){
       var r=document.createElement("div"); r.className="nr";
       var ico=document.createElement("span"); ico.style.cssText="font-size:11px;font-family:sans-serif;color:#6070b0;flex-shrink:0;font-weight:700"; ico.textContent="Son ";
       var body=document.createElement("div");
       var wds=document.createElement("div"); wds.className="nw";
-      var w=document.createElement("span");w.style.cssText="font-family:sans-serif;font-size:13px;font-weight:600;color:#a0a8c0";w.textContent=pt.word;
-      var a=document.createElement("span");a.style.cssText="color:#2a3a4a;font-size:10px";a.textContent=" > ";
-      var ph=document.createElement("span");ph.style.cssText="font-family:sans-serif;font-size:13px;font-style:italic;color:#6878b8";ph.textContent=pt.phonetic;
-      wds.appendChild(w);wds.appendChild(a);wds.appendChild(ph);
-      var tip=document.createElement("div");tip.className="ne";tip.textContent=pt.tip;
-      body.appendChild(wds);body.appendChild(tip);
-      r.appendChild(ico);r.appendChild(body);notes.appendChild(r);
+      var w=document.createElement("span"); w.style.cssText="font-family:sans-serif;font-size:13px;font-weight:600;color:#a0a8c0"; w.textContent=pt.word;
+      var a=document.createElement("span"); a.style.cssText="color:#8090a0;font-size:10px"; a.textContent=" > ";
+      var ph=document.createElement("span"); ph.style.cssText="font-family:sans-serif;font-size:13px;font-style:italic;color:#6878b8"; ph.textContent=pt.phonetic;
+      wds.appendChild(w); wds.appendChild(a); wds.appendChild(ph);
+      var tip=document.createElement("div"); tip.className="ne"; tip.textContent=pt.tip;
+      body.appendChild(wds); body.appendChild(tip);
+      r.appendChild(ico); r.appendChild(body); notes.appendChild(r);
     });
-    if(p.encouragement){var enc=document.createElement("div");enc.className="enc";enc.textContent=p.encouragement;notes.appendChild(enc);}
+    if(p.corrected_sentence && p.corrected_sentence.trim()){
+      var fix=document.createElement("div");
+      fix.style.cssText="padding:8px 12px;background:rgba(88,192,96,.07);border-top:1px solid #0e1a14;font-size:12.5px;font-family:sans-serif;line-height:1.5";
+      var lblRow=document.createElement("div");
+      lblRow.style.cssText="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px";
+      var lbl=document.createElement("div");
+      lbl.style.cssText="font-size:9px;letter-spacing:.18em;color:#90d8a0;text-transform:uppercase;font-weight:600";
+      lbl.textContent="Version correcte";
+      var playBtn=makeSpeakBtn(p.corrected_sentence);
+      lblRow.appendChild(lbl); lblRow.appendChild(playBtn);
+      var sen=document.createElement("div");
+      sen.style.cssText="color:#b8e8c0;font-style:italic";
+      sen.textContent=p.corrected_sentence;
+      fix.appendChild(lblRow); fix.appendChild(sen);
+      notes.appendChild(fix);
+    }
     right.appendChild(notes);
   }
 
@@ -603,7 +619,6 @@ function addNativeMsg(p,id){
   row.scrollIntoView({behavior:"smooth",block:"end"});
   if(!muted) setTimeout(function(){handleSpeak(id);},150);
 }
-
 function addUserMsg(text){
   var msgs=document.getElementById("msgs");
   var wrap=document.createElement("div"); wrap.className="fi"; wrap.style.cssText="display:flex;justify-content:flex-end;position:relative";
@@ -842,6 +857,41 @@ function deleteFromTurn(wrap){
   var keep=2+userTurns*2;
   if(convo.length>keep) convo=convo.slice(0,keep);
   stopSpeak(); showThinking(false); busy=false;
+}
+
+// Speak arbitrary text with a controllable button (used for corrected-sentence replay)
+function makeSpeakBtn(text){
+  var btn=document.createElement("button");
+  btn.style.cssText="background:rgba(88,192,96,.1);border:1px solid rgba(88,192,96,.3);border-radius:14px;padding:3px 10px;cursor:pointer;font-size:11px;font-family:sans-serif;color:#90d8a0;display:inline-flex;align-items:center;gap:4px;margin-left:8px;vertical-align:middle";
+  btn.textContent="▶ Ecouter";
+  var playing=false;
+  btn.addEventListener("click",function(){
+    if(playing){
+      try{speechSynthesis.cancel();}catch(e){}
+      btn.textContent="▶ Ecouter"; playing=false; return;
+    }
+    try{speechSynthesis.cancel();}catch(e){}
+    setPlayId(null);
+    if(!window.speechSynthesis){addErrMsg("TTS non disponible");return;}
+    var go=function(voices){
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang=selLang.tts; u.rate=ttsRate; u.pitch=1;
+      var base=selLang.tts.split("-")[0];
+      var v=voices.find(function(v){return v.lang===selLang.tts;})||voices.find(function(v){return v.lang.startsWith(base);});
+      if(v) u.voice=v;
+      var done=false;
+      var fin=function(){if(done)return;done=true;playing=false;btn.textContent="▶ Ecouter";};
+      var fb=setTimeout(fin,Math.max(text.split(/\s+/).length*500,2500));
+      u.onend=function(){clearTimeout(fb);fin();};
+      u.onerror=function(){clearTimeout(fb);fin();};
+      playing=true; btn.textContent="■ Stop";
+      speechSynthesis.speak(u);
+    };
+    var vs=speechSynthesis.getVoices();
+    if(vs.length) go(vs);
+    else speechSynthesis.onvoiceschanged=function(){go(speechSynthesis.getVoices());};
+  });
+  return btn;
 }
 
 // Merge two transcript fragments removing overlap (max 6 words)
